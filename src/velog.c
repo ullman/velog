@@ -16,6 +16,8 @@ int main (int argc, char *argv[])
   FILE *term_f;
   FILE *log_f;
   time_t log_time;
+  char *log_time_str;
+  struct tm *log_time_tm;
   char *log_line;
 
 
@@ -23,6 +25,7 @@ int main (int argc, char *argv[])
   log_f = NULL;
   device = NULL;
   log_line = malloc (sizeof (char) * 100);
+  log_time_str = malloc (sizeof (char) * 20);
 
   while ((c = getopt (argc, argv, "i:o:")) != -1)
     {
@@ -78,10 +81,14 @@ int main (int argc, char *argv[])
     {
       parse_packet (term_f, packet);
       log_time = time (NULL);
-      sprintf (log_line, "%s,\t%s,\t%s,\t%s,\t%lld\n",
+      log_time_tm = localtime(&log_time);
+      strftime (log_time_str, 20, "%Y-%m-%dT%H:%M:%S", log_time_tm);
+      sprintf (log_line, "%s,\t%s,\t%s,\t%s,\t%s\n",
                packet->PPV, packet->I, packet->IL, packet->V,
-               (long long) log_time);
+               log_time_str);
       send_string (log_line, log_f);
     }
+  free(log_time_str);
+  free(log_line);
   return 0;
 }
