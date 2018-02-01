@@ -1,9 +1,16 @@
 #include "serial.h"
 
+static volatile int run_loop = 1;
+
 void print_manual ()
 {
   printf ("usage:\n");
   printf ("velog -i SERIAL_DEVICE [-o logfile]\n");
+}
+
+void catch_exit()
+{
+  run_loop = 0;
 }
 
 int main (int argc, char *argv[])
@@ -73,6 +80,9 @@ int main (int argc, char *argv[])
     {
       printf ("No logfile specified, printing to standard output\n");
     }
+  printf("press Ctrl-C to quit\n");
+  signal(SIGINT, catch_exit);
+
   struct log_pack *packet = malloc (sizeof (struct log_pack));
   term_fd = open_serial (device);
   term_f = fdopen (term_fd, "r");
@@ -87,8 +97,20 @@ int main (int argc, char *argv[])
                packet->PPV, packet->I, packet->IL, packet->V,
                log_time_str);
       send_string (log_line, log_f);
+      if(run_loop == 0)
+      {
+
+        break;
+      }
     }
+  fclose(term_f);
+  printf("exiting...\n");
+  if (log_f)
+  {
+    fclose(log_f);
+  }
   free(log_time_str);
   free(log_line);
+  free(packet);
   return 0;
 }
