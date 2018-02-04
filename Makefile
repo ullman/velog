@@ -5,8 +5,6 @@ CC	= gcc
 SRCDIR = src
 CFLAGS = -c -O2 -Wall
 LDFLAGS = 
-#XCFLAGS = `pkg-config --cflags gtk+-3.0`
-#XLDFLAGS = `pkg-config --libs gtk+-3.0`
 SOURCES= $(SRCDIR)/velog.c $(SRCDIR)/serial.c
 OBJECTS=$(SOURCES:.c=.o)
 

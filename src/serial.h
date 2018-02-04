@@ -27,4 +27,6 @@ void parse_packet (FILE * term_f, struct log_pack *packet);
 
 void send_string (char *sstring, FILE * outfile);
 
+void log_rotate (FILE *log_f,char *oarg, int log_n);
+
 #endif /* SERIAL_H */

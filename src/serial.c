@@ -81,4 +81,14 @@ void send_string (char *sstring, FILE * outfile)
     }
 }
 
+void log_rotate (FILE *log_f,char *oarg, int log_n)
+{
+  char new_name[100];
+  sprintf(new_name,"%s.%i",oarg,log_n);
+  fclose(log_f);
+  rename(oarg,new_name);
+  log_f = fopen(oarg, "w");
+  send_string ("PPV,\tI,\tIL,\tV,\tTIME\n", log_f);
+
+}
 
