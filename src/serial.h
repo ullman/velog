@@ -1,3 +1,7 @@
+/*
+Copyright (C) 2018  Henrik Ullman
+License: GPL Version 3
+*/
 #ifndef SERIAL_H
 #define SERIAL_H
 #include <stdio.h>

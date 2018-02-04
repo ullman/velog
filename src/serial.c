@@ -1,3 +1,8 @@
+/*
+Copyright (C) 2018  Henrik Ullman
+License: GPL Version 3
+*/
+
 #include "serial.h"
 
 int open_serial (char *sport)

@@ -1,3 +1,7 @@
+/*
+Copyright (C) 2018  Henrik Ullman
+License: GPL Version 3
+*/
 #include "serial.h"
 
 static volatile int run_loop = 1;
