@@ -54,26 +54,48 @@ int parse_packet (FILE * term_f, struct log_pack *packet)
   char *log_line;
   int checksum;
   int i;
+  int fd;
+  fd_set set;
+  int to;
+  struct timeval timeout;
+
 
   checksum = 0;
 
   log_line = malloc (sizeof (char) * 100);
 
   memset (log_line, 0, strlen (log_line));
+
+  /*Timeout */
+  fd = fileno (term_f);
+  FD_ZERO (&set);
+  FD_SET (fd, &set);
+  timeout.tv_sec = 10;
+  timeout.tv_usec = 0;
+
   while (!strstr (log_line, "Checksum"))
     {
-      fgets (log_line, 100, term_f);
-
-      for (i = 0; i < strlen (log_line); i++)
+      to = select (fd + 1, &set, NULL, NULL, &timeout);
+      if (to == 0)
         {
-          checksum = checksum + (int) log_line[i];
+          printf ("Read timeout, please check serial input...\n");
+          return 1;
         }
+      else
+        {
+          fgets (log_line, 100, term_f);
 
-      log_line[strcspn (log_line, "\r\n")] = '\0';
-      parse_line ("PPV\t", log_line, &packet->PPV);
-      parse_line ("I\t", log_line, &packet->I);
-      parse_line ("IL\t", log_line, &packet->IL);
-      parse_line ("V\t", log_line, &packet->V);
+          for (i = 0; i < strlen (log_line); i++)
+            {
+              checksum = checksum + (int) log_line[i];
+            }
+
+          log_line[strcspn (log_line, "\r\n")] = '\0';
+          parse_line ("PPV\t", log_line, &packet->PPV);
+          parse_line ("I\t", log_line, &packet->I);
+          parse_line ("IL\t", log_line, &packet->IL);
+          parse_line ("V\t", log_line, &packet->V);
+        }
     }
 
   free (log_line);

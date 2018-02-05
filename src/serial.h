@@ -13,6 +13,11 @@ License: GPL Version 3
 #include <termios.h>
 #include <fcntl.h>
 #include <time.h>
+#include <sys/select.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+
 
 
 struct log_pack
