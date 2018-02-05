@@ -128,23 +128,26 @@ int main (int argc, char *argv[])
   send_string ("PPV,\tI,\tIL,\tV,\tTIME\n", log_f);
   while (!NULL)
     {
-      parse_packet (term_f, packet);
-      log_time = time (NULL);
-      /*rotate log */
-      if (oarg && log_rotate_interval != 0)
+      if (!parse_packet (term_f, packet))
         {
-          if ((log_time - start_time) / log_rotate_interval == 1)
+          log_time = time (NULL);
+          /*rotate log */
+          if (oarg && log_rotate_interval != 0)
             {
-              start_time += log_rotate_interval;
-              log_rotate (log_f, oarg, log_n);
-              log_n++;
+              if ((log_time - start_time) / log_rotate_interval == 1)
+                {
+                  start_time += log_rotate_interval;
+                  log_rotate (log_f, oarg, log_n);
+                  log_n++;
+                }
             }
+          log_time_tm = localtime (&log_time);
+          strftime (log_time_str, 20, "%Y-%m-%dT%H:%M:%S", log_time_tm);
+          sprintf (log_line, "%s,\t%s,\t%s,\t%s,\t%s\n",
+                   packet->PPV, packet->I, packet->IL, packet->V,
+                   log_time_str);
+          send_string (log_line, log_f);
         }
-      log_time_tm = localtime (&log_time);
-      strftime (log_time_str, 20, "%Y-%m-%dT%H:%M:%S", log_time_tm);
-      sprintf (log_line, "%s,\t%s,\t%s,\t%s,\t%s\n",
-               packet->PPV, packet->I, packet->IL, packet->V, log_time_str);
-      send_string (log_line, log_f);
       if (run_loop == 0)
         {
           break;

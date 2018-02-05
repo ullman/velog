@@ -48,27 +48,44 @@ void parse_line (char *needle, char *log_line, char **store_loc)
     }
 }
 
-void parse_packet (FILE * term_f, struct log_pack *packet)
+int parse_packet (FILE * term_f, struct log_pack *packet)
 {
-//TODO can be improved a lot for stability & cleanness
+  //TODO add custom parameters to log
   char *log_line;
+  int checksum;
+  int i;
+
+  checksum = 0;
+
   log_line = malloc (sizeof (char) * 100);
 
-//find start of packet
-  while (!strstr (log_line, "Checksum"))
-    {
-      fgets (log_line, 100, term_f);
-    }
   memset (log_line, 0, strlen (log_line));
-//start reading packet
   while (!strstr (log_line, "Checksum"))
     {
       fgets (log_line, 100, term_f);
+
+      for (i = 0; i < strlen (log_line); i++)
+        {
+          checksum = checksum + (int) log_line[i];
+        }
+
       log_line[strcspn (log_line, "\r\n")] = '\0';
       parse_line ("PPV\t", log_line, &packet->PPV);
       parse_line ("I\t", log_line, &packet->I);
       parse_line ("IL\t", log_line, &packet->IL);
       parse_line ("V\t", log_line, &packet->V);
+    }
+
+  free (log_line);
+
+  if (checksum % 256 != 0)
+    {
+      fprintf (stderr, "Checksum error for packet, discarding...\n");
+      return 1;
+    }
+  else
+    {
+      return 0;
     }
 
 }

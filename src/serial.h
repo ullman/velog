@@ -27,7 +27,7 @@ int open_serial (char *sport);
 
 void parse_line (char *needle, char *log_line, char **store_loc);
 
-void parse_packet (FILE * term_f, struct log_pack *packet);
+int parse_packet (FILE * term_f, struct log_pack *packet);
 
 void send_string (char *sstring, FILE * outfile);
 
