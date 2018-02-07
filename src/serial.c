@@ -14,10 +14,8 @@ int open_serial (char *sport)
   memset (&uio, 0, sizeof (uio));
 
   cfsetispeed (&uio, B19200);
-  cfsetospeed (&uio, B19200);
 
   uio.c_iflag = 0;
-  uio.c_oflag = 0;
   uio.c_lflag = 0;
   uio.c_cflag = CS8 | CREAD | CLOCAL;
 
@@ -43,7 +41,7 @@ void parse_line (char *needle, char *log_line, char **store_loc)
   if (log_line == strstr (log_line, needle))
     {
       cut_loc = strstr (log_line, "\t");
-      *store_loc = malloc (sizeof (char) * strlen (cut_loc + 1));
+      *store_loc = malloc (sizeof (char) * strlen (cut_loc + 1) + 1);
       strcpy (*store_loc, cut_loc + 1);
     }
 }
@@ -54,19 +52,18 @@ int parse_packet (FILE * term_f, struct log_pack *packet)
   char *log_line;
   int checksum;
   int i;
+  int l;
   int fd;
+  int a;
   fd_set set;
   int to;
   struct timeval timeout;
 
-
   checksum = 0;
-
-  log_line = malloc (sizeof (char) * 100);
-
-  memset (log_line, 0, strlen (log_line));
+  log_line = calloc (100, sizeof (char));
 
   /*Timeout */
+
   fd = fileno (term_f);
   FD_ZERO (&set);
   FD_SET (fd, &set);
@@ -75,32 +72,38 @@ int parse_packet (FILE * term_f, struct log_pack *packet)
 
   while (!strstr (log_line, "Checksum"))
     {
-      to = select (fd + 1, &set, NULL, NULL, &timeout);
-      if (to == 0)
-        {
-          printf ("Read timeout, please check serial input...\n");
-          return 1;
-        }
-      else
-        {
-          fgets (log_line, 100, term_f);
 
-          for (i = 0; i < strlen (log_line); i++)
+
+      memset (log_line, 0, 100);
+      log_line[0] = 0x0D;
+      l = 1;
+      a = 1;
+      while ((a = getc (term_f)) != 0x0D)
+        {
+          log_line[l] = a;
+          l++;
+
+          to = select (FD_SETSIZE, &set, NULL, NULL, &timeout);
+          if (to == 0)
             {
-              checksum = checksum + (int) log_line[i];
+              fprintf (stderr, "Read timeout, please check serial input...\n");
+              return 1;
             }
-
-          log_line[strcspn (log_line, "\r\n")] = '\0';
-          parse_line ("PPV\t", log_line, &packet->PPV);
-          parse_line ("I\t", log_line, &packet->I);
-          parse_line ("IL\t", log_line, &packet->IL);
-          parse_line ("V\t", log_line, &packet->V);
         }
+
+      for (i = 0; i < strlen (log_line); i++)
+        {
+          checksum = checksum + (int) log_line[i];
+        }
+      parse_line ("PPV\t", log_line + 2, &packet->PPV);
+      parse_line ("I\t", log_line + 2, &packet->I);
+      parse_line ("IL\t", log_line + 2, &packet->IL);
+      parse_line ("V\t", log_line + 2, &packet->V);
     }
 
   free (log_line);
 
-  if (checksum % 256 != 0)
+  if ((checksum) % 256 != 0)
     {
       fprintf (stderr, "Checksum error for packet, discarding...\n");
       return 1;

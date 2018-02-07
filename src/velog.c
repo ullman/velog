@@ -49,6 +49,7 @@ int main (int argc, char *argv[])
   time_t start_time;
   int log_rotate_interval;
   int log_n;
+  struct log_pack *packet;
 
 
   oarg = NULL;
@@ -122,7 +123,7 @@ int main (int argc, char *argv[])
 
   start_time = time (NULL);
 
-  struct log_pack *packet = malloc (sizeof (struct log_pack));
+  packet = malloc (sizeof (struct log_pack));
   term_fd = open_serial (device);
   term_f = fdopen (term_fd, "r");
   send_string ("PPV,\tI,\tIL,\tV,\tTIME\n", log_f);
@@ -148,6 +149,11 @@ int main (int argc, char *argv[])
                    log_time_str);
           send_string (log_line, log_f);
         }
+      free (packet->PPV);
+      free (packet->I);
+      free (packet->IL);
+      free (packet->V);
+
       if (run_loop == 0)
         {
           break;
