@@ -15,15 +15,21 @@ int open_serial (char *sport)
 
   cfsetispeed (&uio, B19200);
 
-  uio.c_iflag = 0;
-  uio.c_lflag = 0;
-  uio.c_cflag = CS8 | CREAD | CLOCAL;
+  term_fd = open (sport, O_RDONLY);
+
+  //uio.c_iflag = 0;
+  uio.c_lflag = ICANON; 
+
+  uio.c_oflag &= ~OPOST; 
+  uio.c_cflag &= ~PARENB;
+  uio.c_cflag &= ~CSIZE;
+
+  uio.c_cflag |= CS8 | CREAD | CLOCAL;
 
   uio.c_cc[VMIN] = 0;
   uio.c_cc[VTIME] = 5;
 
   uio.c_iflag &= ~(IXON | IXOFF | IXANY);
-  term_fd = open (sport, O_RDONLY);
   if (term_fd == -1)
     {
       perror ("Error opening serial port");
