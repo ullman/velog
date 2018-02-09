@@ -33,6 +33,15 @@ void catch_exit ()
   run_loop = 0;
 }
 
+void free_line (char *line, int *def_i)
+{
+  if (*def_i)
+    {
+      free (line);
+      *def_i = 0;
+    }
+}
+
 int main (int argc, char *argv[])
 {
 
@@ -125,7 +134,25 @@ int main (int argc, char *argv[])
   start_time = time (NULL);
 
   packet = malloc (sizeof (struct log_pack));
+  packet->ppv_def = 0;
+  packet->i_def = 0;
+  packet->il_def = 0;
+  packet->v_def = 0;
+
   term_fd = open_serial (device);
+  if (term_fd == 1)
+    {
+      if (log_f)
+        {
+          fclose (log_f);
+        }
+      free (log_time_str);
+      free (log_line);
+      free (packet);
+
+
+      exit (1);
+    }
   term_f = fdopen (term_fd, "r");
   send_string ("PPV,\tI,\tIL,\tV,\tTIME\n", log_f);
   while (!NULL)
@@ -149,27 +176,38 @@ int main (int argc, char *argv[])
                    packet->PPV, packet->I, packet->IL, packet->V,
                    log_time_str);
           send_string (log_line, log_f);
+
         }
+
+
+      free_line (packet->PPV, &packet->ppv_def);
+      free_line (packet->I, &packet->i_def);
+      free_line (packet->IL, &packet->il_def);
+      free_line (packet->V, &packet->v_def);
+
 
       if (serial_state == 2)
         {
-          fclose (term_f);
           sleep (10);
           term_fd = open_serial (device);
+          if (term_fd == 1)
+            {
+              break;
+            }
           term_f = fdopen (term_fd, "r");
         }
-      free (packet->PPV);
-      free (packet->I);
-      free (packet->IL);
-      free (packet->V);
 
       if (run_loop == 0)
         {
           break;
         }
 
+
     }
-  fclose (term_f);
+  if (term_f)
+    {
+      fclose (term_f);          //may not close in case of interrupted stream
+    }
   printf ("exiting...\n");
   if (log_f)
     {

@@ -27,13 +27,18 @@ struct log_pack
   char *V;
   char *I;
   char *IL;
+  int ppv_def;
+  int v_def;
+  int i_def;
+  int il_def;
 };
 
 extern volatile int run_loop;
 
 int open_serial (char *sport);
 
-void parse_line (char *needle, char *log_line, char **store_loc);
+void parse_line (char *needle, char *log_line, char **store_loc,
+                 int *def_int);
 
 int parse_packet (FILE * term_f, struct log_pack *packet);
 

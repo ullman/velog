@@ -32,7 +32,7 @@ int open_serial (char *sport)
   if (term_fd == -1)
     {
       perror ("Error opening serial port");
-      exit (1);
+      return 1;
     }
   tcsetattr (term_fd, TCSANOW, &uio);
   tcflush (term_fd, TCIOFLUSH);
@@ -40,7 +40,7 @@ int open_serial (char *sport)
   return term_fd;
 }
 
-void parse_line (char *needle, char *log_line, char **store_loc)
+void parse_line (char *needle, char *log_line, char **store_loc, int *def_int)
 {
   char *cut_loc;
   if (log_line == strstr (log_line, needle))
@@ -48,6 +48,7 @@ void parse_line (char *needle, char *log_line, char **store_loc)
       cut_loc = strstr (log_line, "\t");
       *store_loc = malloc (sizeof (char) * strlen (cut_loc + 1) + 1);
       strcpy (*store_loc, cut_loc + 1);
+      *def_int = 1;
     }
 }
 
@@ -97,22 +98,26 @@ int parse_packet (FILE * term_f, struct log_pack *packet)
             {
               fprintf (stderr,
                        "Read timeout, please check serial input...\n");
+              free (log_line);
               return 1;
             }
           else if (run_loop == 0)
             {
-              return 0;
+              free (log_line);
+              return 1;
             }
           else if (len == 0)
             {
               fprintf (stderr,
                        "Device disconnected, retrying in 10 sec...\n");
+              free (log_line);
               return 2;
             }
           else if (l >= 100)
             {
               fprintf (stderr,
                        "Line malformed, check if device is VE.Direct compatible\n");
+              free (log_line);
               exit (1);
             }
         }
@@ -121,10 +126,10 @@ int parse_packet (FILE * term_f, struct log_pack *packet)
         {
           checksum = checksum + (int) log_line[i];
         }
-      parse_line ("PPV\t", log_line + 2, &packet->PPV);
-      parse_line ("I\t", log_line + 2, &packet->I);
-      parse_line ("IL\t", log_line + 2, &packet->IL);
-      parse_line ("V\t", log_line + 2, &packet->V);
+      parse_line ("PPV\t", log_line + 2, &packet->PPV, &packet->ppv_def);
+      parse_line ("I\t", log_line + 2, &packet->I, &packet->i_def);
+      parse_line ("IL\t", log_line + 2, &packet->IL, &packet->il_def);
+      parse_line ("V\t", log_line + 2, &packet->V, &packet->v_def);
     }
 
   free (log_line);
