@@ -16,6 +16,7 @@ License: GPL Version 3
 #include <sys/select.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 
 
 
@@ -27,6 +28,8 @@ struct log_pack
   char *I;
   char *IL;
 };
+
+extern volatile int run_loop;
 
 int open_serial (char *sport);
 

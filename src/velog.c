@@ -6,7 +6,7 @@ License: GPL Version 3
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 1
 
-static volatile int run_loop = 1;
+volatile int run_loop = 1;
 
 void print_manual ()
 {
@@ -50,6 +50,7 @@ int main (int argc, char *argv[])
   int log_rotate_interval;
   int log_n;
   struct log_pack *packet;
+  int serial_state;
 
 
   oarg = NULL;
@@ -129,7 +130,7 @@ int main (int argc, char *argv[])
   send_string ("PPV,\tI,\tIL,\tV,\tTIME\n", log_f);
   while (!NULL)
     {
-      if (!parse_packet (term_f, packet))
+      if (!(serial_state = parse_packet (term_f, packet)))
         {
           log_time = time (NULL);
           /*rotate log */
@@ -149,6 +150,14 @@ int main (int argc, char *argv[])
                    log_time_str);
           send_string (log_line, log_f);
         }
+
+      if (serial_state == 2)
+        {
+          fclose (term_f);
+          sleep (10);
+          term_fd = open_serial (device);
+          term_f = fdopen (term_fd, "r");
+        }
       free (packet->PPV);
       free (packet->I);
       free (packet->IL);
@@ -158,6 +167,7 @@ int main (int argc, char *argv[])
         {
           break;
         }
+
     }
   fclose (term_f);
   printf ("exiting...\n");

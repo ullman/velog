@@ -17,10 +17,9 @@ int open_serial (char *sport)
 
   term_fd = open (sport, O_RDONLY);
 
-  //uio.c_iflag = 0;
-  uio.c_lflag = ICANON; 
+  uio.c_lflag = ICANON;
 
-  uio.c_oflag &= ~OPOST; 
+  uio.c_oflag &= ~OPOST;
   uio.c_cflag &= ~PARENB;
   uio.c_cflag &= ~CSIZE;
 
@@ -64,6 +63,7 @@ int parse_packet (FILE * term_f, struct log_pack *packet)
   fd_set set;
   int to;
   struct timeval timeout;
+  size_t len;
 
   checksum = 0;
   log_line = calloc (100, sizeof (char));
@@ -86,14 +86,34 @@ int parse_packet (FILE * term_f, struct log_pack *packet)
       a = 1;
       while ((a = getc (term_f)) != 0x0D)
         {
+
           log_line[l] = a;
           l++;
-
           to = select (FD_SETSIZE, &set, NULL, NULL, &timeout);
+
+          len = 0;
+          ioctl (fd, FIONREAD, &len);
           if (to == 0)
             {
-              fprintf (stderr, "Read timeout, please check serial input...\n");
+              fprintf (stderr,
+                       "Read timeout, please check serial input...\n");
               return 1;
+            }
+          else if (run_loop == 0)
+            {
+              return 0;
+            }
+          else if (len == 0)
+            {
+              fprintf (stderr,
+                       "Device disconnected, retrying in 10 sec...\n");
+              return 2;
+            }
+          else if (l >= 100)
+            {
+              fprintf (stderr,
+                       "Line malformed, check if device is VE.Direct compatible\n");
+              exit (1);
             }
         }
 
