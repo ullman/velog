@@ -116,7 +116,7 @@ int parse_packet (FILE * term_f, struct log_pack *packet)
           else if (l >= 100)
             {
               fprintf (stderr,
-                       "Line malformed, check if device is VE.Direct compatible\n");
+                       "Package malformed, discarding...\n");
               free (log_line);
               return 1;
             }
