@@ -118,7 +118,7 @@ int parse_packet (FILE * term_f, struct log_pack *packet)
               fprintf (stderr,
                        "Line malformed, check if device is VE.Direct compatible\n");
               free (log_line);
-              exit (1);
+              return 1;
             }
         }
 
