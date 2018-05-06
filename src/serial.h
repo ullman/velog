@@ -27,10 +27,12 @@ struct log_pack
   char *V;
   char *I;
   char *IL;
+  char *VPV;
   int ppv_def;
   int v_def;
   int i_def;
   int il_def;
+  int vpv_def;
 };
 
 extern volatile int run_loop;

@@ -154,7 +154,7 @@ int main (int argc, char *argv[])
       exit (1);
     }
   term_f = fdopen (term_fd, "r");
-  send_string ("PPV,I,IL,V,TIME\n", log_f);
+  send_string ("PPV,I,IL,V,VPV,TIME\n", log_f);
   while (!NULL)
     {
       if (!(serial_state = parse_packet (term_f, packet)))
@@ -172,8 +172,8 @@ int main (int argc, char *argv[])
             }
           log_time_tm = localtime (&log_time);
           strftime (log_time_str, 20, "%Y-%m-%dT%H:%M:%S", log_time_tm);
-          sprintf (log_line, "%s,%s,%s,%s,%s\n",
-                   packet->PPV, packet->I, packet->IL, packet->V,
+          sprintf (log_line, "%s,%s,%s,%s,%s,%s\n",
+                   packet->PPV, packet->I, packet->IL, packet->V, packet->VPV,
                    log_time_str);
           send_string (log_line, log_f);
 
@@ -184,6 +184,7 @@ int main (int argc, char *argv[])
       free_line (packet->I, &packet->i_def);
       free_line (packet->IL, &packet->il_def);
       free_line (packet->V, &packet->v_def);
+      free_line (packet->VPV, &packet->vpv_def);
 
 
       if (serial_state == 2)

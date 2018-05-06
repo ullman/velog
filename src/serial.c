@@ -130,6 +130,7 @@ int parse_packet (FILE * term_f, struct log_pack *packet)
       parse_line ("I\t", log_line + 2, &packet->I, &packet->i_def);
       parse_line ("IL\t", log_line + 2, &packet->IL, &packet->il_def);
       parse_line ("V\t", log_line + 2, &packet->V, &packet->v_def);
+      parse_line ("VPV\t", log_line + 2, &packet->VPV, &packet->vpv_def);
     }
 
   free (log_line);
@@ -166,6 +167,6 @@ void log_rotate (FILE * log_f, char *oarg, int log_n)
   fclose (log_f);
   rename (oarg, new_name);
   log_f = fopen (oarg, "w");
-  send_string ("PPV,I,IL,V,TIME", log_f);
+  send_string ("PPV,I,IL,V,VPV,TIME", log_f);
 
 }
