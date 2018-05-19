@@ -54,6 +54,7 @@ int main (int argc, char *argv[])
   time_t log_time;
   char *log_time_str;
   struct tm *log_time_tm;
+  struct tm *start_time_tm;
   char *log_line;
   time_t start_time;
   int log_rotate_interval;
@@ -132,6 +133,13 @@ int main (int argc, char *argv[])
   signal (SIGINT, catch_exit);
 
   start_time = time (NULL);
+
+  /*set start time to midnight*/
+  start_time_tm = localtime (&start_time);
+  start_time_tm->tm_hour = 0;
+  start_time_tm->tm_min = 0;
+  start_time_tm->tm_sec = 0;
+  start_time = mktime(start_time_tm);
 
   packet = malloc (sizeof (struct log_pack));
   packet->ppv_def = 0;
