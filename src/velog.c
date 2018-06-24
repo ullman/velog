@@ -59,6 +59,7 @@ int main (int argc, char *argv[])
   time_t start_time;
   int log_rotate_interval;
   int log_n;
+  int log_change;
   struct log_pack *packet;
   int serial_state;
 
@@ -171,9 +172,11 @@ int main (int argc, char *argv[])
           /*rotate log */
           if (oarg && log_rotate_interval != 0)
             {
-              if ((log_time - start_time) / log_rotate_interval == 1)
+              log_change = (log_time - start_time) / log_rotate_interval;
+
+              if (log_change != 0)
                 {
-                  start_time += log_rotate_interval;
+                  start_time += log_rotate_interval * log_change;
                   log_rotate (log_f, oarg, log_n);
                   log_n++;
                 }

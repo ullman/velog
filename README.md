@@ -13,15 +13,22 @@ make install
 
 ## Usage
 
+```bash
 velog -i /tmp/vmodem1 -o log.csv -r 1
+```
 
 Required:
+
+```bash
 -i  [serial device]
+```
 
 Optional:
+
+```bash
 -o [log to file]
 -r [logfile rotate cycle in days]
-
+```
 
 ## Licence
 
