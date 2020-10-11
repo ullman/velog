@@ -90,6 +90,8 @@ void test__parse_block__mppt_001(void) {
 
 	b = ve_direct_parse_block(test_block);
 	CU_ASSERT_EQUAL(b->pid, 0xA042);
+	CU_ASSERT_EQUAL(b->device_info->type, ve_direct_device_type_mppt);
+	CU_ASSERT_STRING_EQUAL(b->device_info->name, "BlueSolar MPPT 75|15");
 	ve_direct_free_block(b);
 }
 
@@ -112,6 +114,8 @@ void test__parse_block__inverter_001(void) {
 
 	b = ve_direct_parse_block(test_block);
 	CU_ASSERT_EQUAL(b->pid, 0xA279);
+	CU_ASSERT_EQUAL(b->device_info->type, ve_direct_device_type_inverter);
+	CU_ASSERT_STRING_EQUAL(b->device_info->name, "Phoenix Inverter 12V 1200VA 120V");
 	ve_direct_free_block(b);
 }
 
@@ -160,6 +164,7 @@ void test__parse_block__bmv_001(void) {
 
 	b = ve_direct_parse_block(test_block_pt_2);
 	CU_ASSERT_EQUAL(b->pid, NULL); // Second block has no PID
+	CU_ASSERT_EQUAL(b->device_info, NULL); // and no device_info
 	ve_direct_free_block(b);
 }
 

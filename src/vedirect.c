@@ -83,10 +83,16 @@ void ve_direct_free_block(ve_direct_block_t *block)
 {
 	if (block == NULL) return;
 
+	if (block->device_info !=NULL) {
+		free(block->device_info->name);
+		free(block->device_info);
+	}
+
 	if (block->raw_fields != NULL)
 		_ve_direct_free_raw_fields_from_block(block->raw_fields);
 	free(block);
 }
+
 
 ve_direct_block_t *ve_direct_parse_block(char *block_text_in)
 {
@@ -126,6 +132,8 @@ ve_direct_block_t *ve_direct_parse_block(char *block_text_in)
 	if (p != NULL) {
 		sscanf(p, "%x", &block->pid);
 	}
+
+	block->device_info = _ve_direct_get_device_info(block->pid);
 
 	return block;
 }
