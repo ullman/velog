@@ -525,6 +525,10 @@ ve_direct_device_info_t *_ve_direct_get_device_info(unsigned int pid)
 		type = ve_direct_device_type_smart_charger;
 		strcpy(name, "Phoenix Smart IP43 Charger 24|16 (3)");
 		break;
+	case 0xA381:
+		type = ve_direct_device_type_bmv;
+		strcpy(name, "BMV-712 Smart Battery Monitor");
+		break;
 	default:
 		type = ve_direct_device_type_unknown;
 		strcpy(name, "Unknown device PID");

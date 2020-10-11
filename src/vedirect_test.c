@@ -160,6 +160,8 @@ void test__parse_block__bmv_001(void) {
 
 	b = ve_direct_parse_block(test_block_pt_1);
 	CU_ASSERT_EQUAL(b->pid, 0xA381);
+	CU_ASSERT_EQUAL(b->device_info->type, ve_direct_device_type_bmv);
+	CU_ASSERT_STRING_EQUAL(b->device_info->name, "BMV-712 Smart Battery Monitor");
 	ve_direct_free_block(b);
 
 	b = ve_direct_parse_block(test_block_pt_2);
