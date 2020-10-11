@@ -7,8 +7,9 @@ Serial log application for VE.Direct devices
 ## Compiling
 
 ```bash
-make
-make install
+make all
+make test
+sudo make install
 ```
 
 ## Usage
