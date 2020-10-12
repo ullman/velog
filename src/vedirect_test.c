@@ -3,6 +3,7 @@ Copyright (C) 2020  "Philip J Freeman" <elektron@halo.nu>
 License: GPL Version 3
 */
 
+#include <stdlib.h>
 #include <CUnit/CUnit.h>
 #include <CUnit/Basic.h>
 #include "vedirect.h"
@@ -170,6 +171,77 @@ void test__parse_block__bmv_001(void) {
 	ve_direct_free_block(b);
 }
 
+void test__parse_block__relay_log(char *log_filename, int expected_blocks)
+{
+	int			ch, i=0, block_count=0;
+	char			block_buff[1025];
+	FILE			*fptr;
+	ve_direct_block_t	*b = NULL;
+
+	if ((fptr = fopen(log_filename, "r")) == NULL) {
+		fprintf(stderr, "Error opening data file: %s\n", log_filename);
+		exit(1);
+	}
+
+	while ((ch = fgetc(fptr)) != EOF) {
+		block_buff[i]=ch;
+		if (i >= 1024 ) {
+			fprintf(stderr, "Error: exhausted block read buffer!\n");
+			break;
+		}
+
+		if (i < 9) {
+			i++;
+			continue;
+		}
+
+		block_buff[i+1]='\0';
+		if (block_buff[0] == ':' && block_buff[i] == '\n') {
+			// skip hex protocol frame
+			i=0;
+			continue;
+		}
+		if (strstr(&block_buff[i-9], "Checksum") == &block_buff[i-9]) {
+			b = ve_direct_parse_block(&block_buff[0]);
+			if (b == NULL) {
+				fprintf(stderr, "\n\nError parsing block_in=\n%s\n\n", &block_buff[0]);
+			} else {
+				block_count++;
+				ve_direct_free_block(b);
+			}
+			i=0;
+			continue;
+		};
+
+		i++;
+	}
+	fclose(fptr);
+
+	CU_ASSERT_EQUAL(block_count, expected_blocks);
+	if (block_count != expected_blocks) {
+		fprintf(stderr, "Expectad (%i) and actual (%i) blocks differ for %s\n", expected_blocks, block_count, log_filename);
+	}
+}
+
+void test__parse_block__relay_log__mppt_75_15(void)
+{
+	test__parse_block__relay_log("data/bluesolar_mppt_75_15-001.log", 1057);
+	test__parse_block__relay_log("data/bluesolar_mppt_75_15-002.log", 2007);
+	test__parse_block__relay_log("data/bluesolar_mppt_75_15-003.log", 1307);
+}
+
+void test__parse_block__relay_log__phoenix_inverter(void)
+{
+	test__parse_block__relay_log("data/phoenix_inverter_12_1200.log",1829);
+}
+
+void test__parse_block__relay_log__bmv712(void)
+{
+	test__parse_block__relay_log("data/bmv_712_smart_battery_monitor-001.log", 2967);
+	test__parse_block__relay_log("data/bmv_712_smart_battery_monitor-002.log", 95);
+	test__parse_block__relay_log("data/bmv_712_smart_battery_monitor-003.log", 3177);
+}
+
 int main (void)
 {
 	CU_pSuite suite1 = NULL;
@@ -208,6 +280,22 @@ int main (void)
 		CU_cleanup_registry();
 		return CU_get_error();
 	}
+
+	if ((NULL == CU_ADD_TEST(suite1, test__parse_block__relay_log__mppt_75_15))) {
+		CU_cleanup_registry();
+		return CU_get_error();
+	}
+
+	if ((NULL == CU_ADD_TEST(suite1, test__parse_block__relay_log__phoenix_inverter))) {
+		CU_cleanup_registry();
+		return CU_get_error();
+	}
+
+	if ((NULL == CU_ADD_TEST(suite1, test__parse_block__relay_log__bmv712))) {
+		CU_cleanup_registry();
+		return CU_get_error();
+	}
+
 
 	CU_basic_run_tests();
 
