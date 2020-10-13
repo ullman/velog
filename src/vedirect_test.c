@@ -66,6 +66,7 @@ void test__parse_block__linked_list(void) {
 }
 
 void test__parse_block__mppt_001(void) {
+	void *p;
 	ve_direct_block_t *b = NULL;
 
 	char *test_block =
@@ -73,30 +74,41 @@ void test__parse_block__mppt_001(void) {
 		"\r\nFW\t150"
 		"\r\nSER#\tHQ1909K249H"
 		"\r\nV\t12440"
-		"\r\nI\t0"
-		"\r\nVPV\t0"
-		"\r\nPPV\t0"
+		"\r\nI\t13"
+		"\r\nVPV\t21760"
+		"\r\nPPV\t76"
 		"\r\nCS\t0"
 		"\r\nMPPT\t0"
 		"\r\nERR\t0"
 		"\r\nLOAD\tOFF"
-		"\r\nIL\t0"
+		"\r\nIL\t27"
 		"\r\nH19\t559"
 		"\r\nH20\t24"
 		"\r\nH21\t84"
 		"\r\nH22\t22"
 		"\r\nH23\t67"
 		"\r\nHSDS\t34"
-		"\r\nChecksum\t\xc8";
+		"\r\nChecksum\t\x4e";
 
 	b = ve_direct_parse_block(test_block);
 	CU_ASSERT_EQUAL(b->pid, 0xA042);
 	CU_ASSERT_EQUAL(b->device_info->type, ve_direct_device_type_mppt);
 	CU_ASSERT_STRING_EQUAL(b->device_info->name, "BlueSolar MPPT 75|15");
+	p = ve_direct_get_field_value(b,"V");
+	CU_ASSERT_EQUAL(*(int *)p, 12440);
+	p = ve_direct_get_field_value(b,"I");
+	CU_ASSERT_EQUAL(*(int *)p, 13);
+	p = ve_direct_get_field_value(b,"IL");
+	CU_ASSERT_EQUAL(*(int *)p, 27);
+	p = ve_direct_get_field_value(b,"VPV");
+	CU_ASSERT_EQUAL(*(int *)p, 21760);
+	p = ve_direct_get_field_value(b,"PPV");
+	CU_ASSERT_EQUAL(*(int *)p, 76);
 	ve_direct_free_block(b);
 }
 
 void test__parse_block__inverter_001(void) {
+	void *p;
 	ve_direct_block_t *b = NULL;
 
 	char *test_block =
@@ -117,10 +129,17 @@ void test__parse_block__inverter_001(void) {
 	CU_ASSERT_EQUAL(b->pid, 0xA279);
 	CU_ASSERT_EQUAL(b->device_info->type, ve_direct_device_type_inverter);
 	CU_ASSERT_STRING_EQUAL(b->device_info->name, "Phoenix Inverter 12V 1200VA 120V");
+	p = ve_direct_get_field_value(b,"V");
+	CU_ASSERT_EQUAL(*(int *)p, 13308);
+	p = ve_direct_get_field_value(b,"AC_OUT_V");
+	CU_ASSERT_EQUAL(*(int *)p, 12003);
+	p = ve_direct_get_field_value(b,"AC_OUT_I");
+	CU_ASSERT_EQUAL(*(int *)p, 2);
 	ve_direct_free_block(b);
 }
 
 void test__parse_block__bmv_001(void) {
+	void *p;
 	ve_direct_block_t *b = NULL;
 
 	char *test_block_pt_1 =
@@ -163,6 +182,18 @@ void test__parse_block__bmv_001(void) {
 	CU_ASSERT_EQUAL(b->pid, 0xA381);
 	CU_ASSERT_EQUAL(b->device_info->type, ve_direct_device_type_bmv);
 	CU_ASSERT_STRING_EQUAL(b->device_info->name, "BMV-712 Smart Battery Monitor");
+	p = ve_direct_get_field_value(b,"V");
+	CU_ASSERT_EQUAL(*(int *)p, 13043);
+	p = ve_direct_get_field_value(b,"T");
+	CU_ASSERT_EQUAL(*(int *)p, 23);
+	p = ve_direct_get_field_value(b,"P");
+	CU_ASSERT_EQUAL(*(int *)p, 50);
+	p = ve_direct_get_field_value(b,"CE");
+	CU_ASSERT_EQUAL(*(int *)p, 0);
+	p = ve_direct_get_field_value(b,"SOC");
+	CU_ASSERT_EQUAL(*(int *)p, 1000);
+	p = ve_direct_get_field_value(b,"TTG");
+	CU_ASSERT_EQUAL(*(int *)p, -1);
 	ve_direct_free_block(b);
 
 	b = ve_direct_parse_block(test_block_pt_2);
