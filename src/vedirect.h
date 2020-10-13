@@ -47,6 +47,7 @@ typedef struct ve_direct_block_t {
 
 ve_direct_block_t	*ve_direct_parse_block(char *block_text_in);
 void			*ve_direct_get_field_value(ve_direct_block_t *block, char *field_name);
+int			ve_direct_get_field_int(int *int_p, ve_direct_block_t *block, char *field_name);
 void			ve_direct_print_block(ve_direct_block_t *block);
 void			ve_direct_free_block(ve_direct_block_t *block);
 

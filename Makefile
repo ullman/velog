@@ -12,8 +12,8 @@ OBJECTS=$(SOURCES:.c=.o)
 
 all: $(TARGET) $(TEST_TARGET)
 
-velog: $(SRCDIR)/velog.o $(SRCDIR)/serial.o
-	$(CC) $(LDFLAGS) $(SRCDIR)/velog.o $(SRCDIR)/serial.o -o $@
+velog: $(SRCDIR)/velog.o $(SRCDIR)/serial.o $(SRCDIR)/vedirect.o $(SRCDIR)/vedirect_devices.o
+	$(CC) $(LDFLAGS) $(SRCDIR)/velog.o $(SRCDIR)/serial.o $(SRCDIR)/vedirect.o $(SRCDIR)/vedirect_devices.o -o $@
 
 vedirect_test: $(SRCDIR)/vedirect.o $(SRCDIR)/vedirect_devices.o $(SRCDIR)/vedirect_test.o
 	$(CC) $(LDFLAGS) -lcunit $(SRCDIR)/vedirect.o $(SRCDIR)/vedirect_devices.o $(SRCDIR)/vedirect_test.o -o $@

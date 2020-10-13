@@ -1,10 +1,13 @@
 /*
 Copyright (C) 2018  Henrik Ullman
+Copyright (C) 2020  Philip J Freeman <elektron@halo.nu>
 License: GPL Version 3
 */
 #include "serial.h"
+#include "vedirect.h"
 #define VERSION_MAJOR 0
-#define VERSION_MINOR 1
+#define VERSION_MINOR 2
+#define VERSION_PATCH 0
 
 volatile int run_loop = 1;
 
@@ -20,8 +23,9 @@ void print_manual ()
 
 void print_version ()
 {
-  printf ("velog version %i.%i\n", VERSION_MAJOR, VERSION_MINOR);
+  printf ("velog version %i.%i.%i\n", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
   printf ("Copyright (C) 2018  Henrik Ullman\n");
+  printf ("Copyright (C) 2020  Philip J Freeman <elektron@halo.nu>\n");
   printf ("License: GPL Version 3\n");
   printf
     ("This is free software: you are free to change and redistribute it.\n");
@@ -31,15 +35,6 @@ void print_version ()
 void catch_exit ()
 {
   run_loop = 0;
-}
-
-void free_line (char *line, int *def_i)
-{
-  if (*def_i)
-    {
-      free (line);
-      *def_i = 0;
-    }
 }
 
 int main (int argc, char *argv[])
@@ -60,8 +55,9 @@ int main (int argc, char *argv[])
   int log_rotate_interval;
   int log_n;
   int log_change;
-  struct log_pack *packet;
   int serial_state;
+  int i;
+  ve_direct_block_t *block;
 
 
   oarg = NULL;
@@ -142,12 +138,6 @@ int main (int argc, char *argv[])
   start_time_tm->tm_sec = 0;
   start_time = mktime(start_time_tm);
 
-  packet = malloc (sizeof (struct log_pack));
-  packet->ppv_def = 0;
-  packet->i_def = 0;
-  packet->il_def = 0;
-  packet->v_def = 0;
-
   term_fd = open_serial (device);
   if (term_fd == 1)
     {
@@ -157,7 +147,6 @@ int main (int argc, char *argv[])
         }
       free (log_time_str);
       free (log_line);
-      free (packet);
 
 
       exit (1);
@@ -166,8 +155,16 @@ int main (int argc, char *argv[])
   send_string ("PPV,I,IL,V,VPV,TIME\n", log_f);
   while (!NULL)
     {
-      if (!(serial_state = parse_packet (term_f, packet)))
+      if (!(serial_state = get_block (term_f, &block)))
         {
+          if (block->device_info == NULL || block->device_info->type != ve_direct_device_type_mppt)
+            {
+              /* TODO: support further device types with alternate lists of data fields. */
+              fprintf(stderr, "Warning: skipping non-mppt block\n");
+              ve_direct_free_block(block);
+              continue;
+            }
+
           log_time = time (NULL);
           /*rotate log */
           if (oarg && log_rotate_interval != 0)
@@ -183,19 +180,37 @@ int main (int argc, char *argv[])
             }
           log_time_tm = localtime (&log_time);
           strftime (log_time_str, 20, "%Y-%m-%dT%H:%M:%S", log_time_tm);
-          sprintf (log_line, "%s,%s,%s,%s,%s,%s\n",
-                   packet->PPV, packet->I, packet->IL, packet->V, packet->VPV,
-                   log_time_str);
+
+          log_line[0]='\0';
+          if (ve_direct_get_field_int(&i, block, "PPV") == 0)
+            sprintf(&log_line[strlen(log_line)], "%i,", i);
+          else
+            sprintf(&log_line[strlen(log_line)], ",");
+
+          if (ve_direct_get_field_int(&i, block, "I") == 0)
+            sprintf(&log_line[strlen(log_line)], "%i,", i);
+          else
+            sprintf(&log_line[strlen(log_line)], ",");
+
+          if (ve_direct_get_field_int(&i, block, "IL") == 0)
+            sprintf(&log_line[strlen(log_line)], "%i,", i);
+          else
+            sprintf(&log_line[strlen(log_line)], ",");
+
+          if (ve_direct_get_field_int(&i, block, "V") == 0)
+            sprintf(&log_line[strlen(log_line)], "%i,", i);
+          else
+            sprintf(&log_line[strlen(log_line)], ",");
+
+          if (ve_direct_get_field_int(&i, block, "VPV") == 0)
+            sprintf(&log_line[strlen(log_line)], "%i,", i);
+          else
+            sprintf(&log_line[strlen(log_line)], ",");
+
+          sprintf (&log_line[strlen(log_line)], "%s\n", log_time_str);
           send_string (log_line, log_f);
-
+          ve_direct_free_block(block);
         }
-
-
-      free_line (packet->PPV, &packet->ppv_def);
-      free_line (packet->I, &packet->i_def);
-      free_line (packet->IL, &packet->il_def);
-      free_line (packet->V, &packet->v_def);
-      free_line (packet->VPV, &packet->vpv_def);
 
 
       if (serial_state == 2)
@@ -227,6 +242,5 @@ int main (int argc, char *argv[])
     }
   free (log_time_str);
   free (log_line);
-  free (packet);
   return 0;
 }

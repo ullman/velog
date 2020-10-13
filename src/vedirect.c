@@ -183,6 +183,18 @@ void *ve_direct_get_field_value(ve_direct_block_t *block, char *field_name)
 	return NULL;
 }
 
+int ve_direct_get_field_int(int *int_p, ve_direct_block_t *block, char *field_name)
+{
+	void *p;
+
+	p = ve_direct_get_field_value(block, field_name);
+	if (p == NULL) {
+		return -1;
+	}
+	*int_p = *(int *)p;
+	return 0;
+}
+
 void ve_direct_print_block(ve_direct_block_t *b)
 {
 	ve_direct_raw_fields_t  *raw_fields_p;
