@@ -7,15 +7,16 @@ Serial log application for VE.Direct devices
 ## Compiling
 
 ```bash
-make all
-make test
-sudo make install
+# apt-get install build-essential libcunit1-dev
+$ make all
+$ make test
+# make install
 ```
 
 ## Usage
 
 ```bash
-velog -i /tmp/vmodem1 -o log.csv -r 1
+velog -i /dev/serial/by-id/usb-VE_Direct_cable-port0 -o log.csv -r 1
 ```
 
 Required:
