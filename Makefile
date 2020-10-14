@@ -6,14 +6,14 @@ CC	= gcc
 SRCDIR = src
 CFLAGS = -c -O2 -Wall
 LDFLAGS = 
-SOURCES= $(SRCDIR)/velog.c $(SRCDIR)/serial.c $(SRCDIR)/log_csv.c $(SRCDIR)/vedirect.c $(SRCDIR)/vedirect_devices.c $(SRCDIR)/vedirect_test.c
+SOURCES= $(SRCDIR)/velog.c $(SRCDIR)/serial.c $(SRCDIR)/log_csv.c $(SRCDIR)/vedirect.c $(SRCDIR)/vedirect_devices.c $(SRCDIR)/log_graphite.c $(SRCDIR)/vedirect_test.c
 OBJECTS=$(SOURCES:.c=.o)
 
 
 all: $(TARGET) $(TEST_TARGET)
 
-velog: $(SRCDIR)/velog.o $(SRCDIR)/serial.o $(SRCDIR)/log_csv.o $(SRCDIR)/vedirect.o $(SRCDIR)/vedirect_devices.o
-	$(CC) $(LDFLAGS) $(SRCDIR)/velog.o $(SRCDIR)/serial.o $(SRCDIR)/log_csv.o $(SRCDIR)/vedirect.o $(SRCDIR)/vedirect_devices.o -o $@
+velog: $(SRCDIR)/velog.o $(SRCDIR)/serial.o $(SRCDIR)/log_csv.o $(SRCDIR)/vedirect.o $(SRCDIR)/vedirect_devices.o $(SRCDIR)/log_graphite.o
+	$(CC) $(LDFLAGS) $(SRCDIR)/velog.o $(SRCDIR)/serial.o $(SRCDIR)/log_csv.o $(SRCDIR)/vedirect.o $(SRCDIR)/vedirect_devices.o $(SRCDIR)/log_graphite.o -o $@
 
 vedirect_test: $(SRCDIR)/vedirect.o $(SRCDIR)/vedirect_devices.o $(SRCDIR)/vedirect_test.o
 	$(CC) $(LDFLAGS) -lcunit $(SRCDIR)/vedirect.o $(SRCDIR)/vedirect_devices.o $(SRCDIR)/vedirect_test.o -o $@

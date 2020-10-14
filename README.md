@@ -30,6 +30,8 @@ Optional:
 ```bash
 -o [log to file]
 -r [logfile rotate cycle in days]
+-g [send to graphite host]
+-d [graphite device id]
 ```
 
 ## Licence

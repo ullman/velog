@@ -13,6 +13,7 @@ License: GPL Version 3
 #include "vedirect.h"
 #include "serial.h"
 #include "log_csv.h"
+#include "log_graphite.h"
 
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 2
@@ -27,6 +28,8 @@ void print_manual ()
   printf (" -i\tSerial device\n");
   printf (" -o\tLogfile name\n");
   printf (" -r\tLog rotate interval in days\n");
+  printf (" -g\tgraphite host\n");
+  printf (" -d\tgraphite device id\n");
   printf (" -v\tPrint version\n");
 }
 
@@ -64,6 +67,9 @@ int main (int argc, char *argv[])
   ve_direct_block_t *block;
   ve_log_output_csv_t *out_csv = NULL;
   char *header=NULL;
+  char *garg=NULL;
+  char *device_id=NULL;
+  char graphite_path[100];
 
 
   oarg = NULL;
@@ -73,7 +79,7 @@ int main (int argc, char *argv[])
   log_rotate_interval = 0;
 
 
-  while ((c = getopt (argc, argv, "i:o:r:hv")) != -1)
+  while ((c = getopt (argc, argv, "i:o:r:g:d:hv")) != -1)
     {
       switch (c)
         {
@@ -89,6 +95,14 @@ int main (int argc, char *argv[])
           log_rotate_interval = atoi (optarg);
           printf ("Rotating logfiles every %i days\n", log_rotate_interval);
           log_rotate_interval *= 86400; //measure in seconds
+          break;
+        case 'g':
+          garg = optarg;
+          printf ("streaming metrics to graphite: %s\n", garg);
+          break;
+        case 'd':
+          device_id = optarg;
+          printf ("streaming metrics to graphite with device id: %s\n", device_id);
           break;
         case 'h':
           print_manual ();
@@ -132,6 +146,16 @@ int main (int argc, char *argv[])
       exit (1);
     }
   term_f = fdopen (term_fd, "r");
+
+  //initialize graphite client
+  if (garg)
+    {
+      if (init_graphite(garg, 2003) != 0)
+        {
+          fprintf (stderr, "Error initializing graphite logging client.\n");
+          exit (1);
+        }
+    }
   while (!NULL)
     {
       if (!(serial_state = get_block (term_f, &block)))
@@ -194,16 +218,32 @@ int main (int argc, char *argv[])
           log_time_tm = localtime (&log_time);
           strftime (log_time_str, 20, "%Y-%m-%dT%H:%M:%S", log_time_tm);
 
-          log_line[0]='\0';
+          if (out_csv) log_line[0]='\0';
           for ( i = 0; i < num_fields; i++) {
-            if (ve_direct_get_field_int(&j, block, fields_p[i]) == 0)
-              sprintf(&log_line[strlen(log_line)], "%i,", j);
-            else
-              sprintf(&log_line[strlen(log_line)], ",");
+            if (ve_direct_get_field_int(&j, block, fields_p[i]) == 0) {
+              if (out_csv) sprintf(&log_line[strlen(log_line)], "%i,", j);
+
+	      if (garg)
+		{
+                  //graphite
+                  if (device_id == NULL && (device_id = ve_direct_get_field_value(block, "SER#")) == NULL) {
+                    fprintf(stderr, "Warning: not sending graphite metric without device_id.\n");
+                    fprintf(stderr, "if the device doesn't publish a SER# field you must manually\n");
+                    fprintf(stderr, "specify with -d.\n");
+                    continue;
+                  }
+                  snprintf(graphite_path, 100, "velog.%s.%s", device_id, fields_p[i]);
+                  log_graphite(graphite_path, j, log_time);
+		}
+            } else {
+              if (out_csv) sprintf(&log_line[strlen(log_line)], ",");
+            }
           }
 
-          sprintf (&log_line[strlen(log_line)], "%s\n", log_time_str);
-          log_csv_send (out_csv, log_line);
+          if (out_csv) {
+            log_csv_send (out_csv, log_line);
+            sprintf (&log_line[strlen(log_line)], "%s\n", log_time_str);
+	  }
           ve_direct_free_block(block);
         }
 
@@ -232,6 +272,7 @@ int main (int argc, char *argv[])
     }
   printf ("exiting...\n");
   if (out_csv) free(out_csv);
+  if (garg) close_graphite();
   free (log_time_str);
   free (log_line);
   return 0;
