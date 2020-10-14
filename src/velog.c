@@ -55,8 +55,9 @@ int main (int argc, char *argv[])
   int log_rotate_interval;
   int log_n;
   int log_change;
+  int header_needed=1;
   int serial_state;
-  int i;
+  int i, j;
   ve_direct_block_t *block;
 
 
@@ -152,17 +153,48 @@ int main (int argc, char *argv[])
       exit (1);
     }
   term_f = fdopen (term_fd, "r");
-  send_string ("PPV,I,IL,V,VPV,TIME\n", log_f);
   while (!NULL)
     {
       if (!(serial_state = get_block (term_f, &block)))
         {
-          if (block->device_info == NULL || block->device_info->type != ve_direct_device_type_mppt)
+          if (block->device_info == NULL)
             {
-              /* TODO: support further device types with alternate lists of data fields. */
-              fprintf(stderr, "Warning: skipping non-mppt block\n");
+              // fprintf(stderr, "Warning: skipping block w/o device_info :-/\n");
               ve_direct_free_block(block);
               continue;
+            }
+
+          int num_fields=0;
+          char *field_list_mppt[] = { "PPV", "I", "IL", "V", "VPV" };
+          char *field_list_inverter[] = { "V", "AC_OUT_V", "AC_OUT_I" };
+          char *field_list_bmv[] = { "P","I", "V", "T", "CE", "SOC", "TTG" };
+          char *field_list_unknown[] = { "I", "V" };
+          char **fields_p = NULL;
+
+          switch (block->device_info->type)
+            {
+                case ve_direct_device_type_mppt:
+                  num_fields = 5;
+                  fields_p = field_list_mppt;
+                  break;
+
+                case ve_direct_device_type_inverter:
+                  num_fields = 3;
+                  fields_p = field_list_inverter;
+                  break;
+
+                case ve_direct_device_type_bmv:
+                  num_fields = 7;
+                  fields_p = field_list_bmv;
+                  break;
+
+                case ve_direct_device_type_smart_charger:
+                case ve_direct_device_type_unknown:
+                  num_fields = 2;
+                  fields_p = field_list_unknown;
+                  break;
+                default:
+                  break;
             }
 
           log_time = time (NULL);
@@ -176,36 +208,32 @@ int main (int argc, char *argv[])
                   start_time += log_rotate_interval * log_change;
                   log_rotate (log_f, oarg, log_n);
                   log_n++;
+                  header_needed = 1;
                 }
             }
+
+          // print header
+          if (header_needed)
+            {
+              header_needed = 0;
+              log_line[0]='\0';
+              for ( i = 0; i < num_fields; i++) {
+                sprintf(&log_line[strlen(log_line)], "%s,", fields_p[i]);
+              }
+              sprintf (&log_line[strlen(log_line)], "TIME\n");
+              send_string (log_line, log_f);
+            }
+
           log_time_tm = localtime (&log_time);
           strftime (log_time_str, 20, "%Y-%m-%dT%H:%M:%S", log_time_tm);
 
           log_line[0]='\0';
-          if (ve_direct_get_field_int(&i, block, "PPV") == 0)
-            sprintf(&log_line[strlen(log_line)], "%i,", i);
-          else
-            sprintf(&log_line[strlen(log_line)], ",");
-
-          if (ve_direct_get_field_int(&i, block, "I") == 0)
-            sprintf(&log_line[strlen(log_line)], "%i,", i);
-          else
-            sprintf(&log_line[strlen(log_line)], ",");
-
-          if (ve_direct_get_field_int(&i, block, "IL") == 0)
-            sprintf(&log_line[strlen(log_line)], "%i,", i);
-          else
-            sprintf(&log_line[strlen(log_line)], ",");
-
-          if (ve_direct_get_field_int(&i, block, "V") == 0)
-            sprintf(&log_line[strlen(log_line)], "%i,", i);
-          else
-            sprintf(&log_line[strlen(log_line)], ",");
-
-          if (ve_direct_get_field_int(&i, block, "VPV") == 0)
-            sprintf(&log_line[strlen(log_line)], "%i,", i);
-          else
-            sprintf(&log_line[strlen(log_line)], ",");
+          for ( i = 0; i < num_fields; i++) {
+            if (ve_direct_get_field_int(&j, block, fields_p[i]) == 0)
+              sprintf(&log_line[strlen(log_line)], "%i,", j);
+            else
+              sprintf(&log_line[strlen(log_line)], ",");
+          }
 
           sprintf (&log_line[strlen(log_line)], "%s\n", log_time_str);
           send_string (log_line, log_f);
