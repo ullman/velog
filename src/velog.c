@@ -3,8 +3,15 @@ Copyright (C) 2018  Henrik Ullman
 Copyright (C) 2020  Philip J Freeman <elektron@halo.nu>
 License: GPL Version 3
 */
-#include "serial.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
+#include <unistd.h>
+#include <errno.h>
+#include <time.h>
 #include "vedirect.h"
+#include "serial.h"
 #include "log_csv.h"
 
 #define VERSION_MAJOR 0

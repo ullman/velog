@@ -3,7 +3,11 @@ Copyright (C) 2018  Henrik Ullman
 Copyright (C) 2020  Philip J Freeman <elektron@halo.nu>
 License: GPL Version 3
 */
-
+#
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 #include "log_csv.h"
 
 ve_log_output_csv_t *init_output_log_csv(char *filepath, char *header, int log_rotate_interval)

@@ -5,19 +5,6 @@ License: GPL Version 3
 */
 #ifndef LOG_CSV_H
 #define LOG_CSV_H
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <signal.h>
-#include <unistd.h>
-#include <errno.h>
-#include <termios.h>
-#include <fcntl.h>
-#include <time.h>
-#include <sys/select.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
 
 typedef struct ve_log_output_csv_t {
 	char		*filepath;
