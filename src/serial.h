@@ -28,8 +28,4 @@ int open_serial (char *sport);
 
 int get_block (FILE * term_f, ve_direct_block_t **block);
 
-void send_string (char *sstring, FILE * outfile);
-
-void log_rotate (FILE * log_f, char *oarg, int log_n);
-
 #endif /* SERIAL_H */

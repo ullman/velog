@@ -5,6 +5,8 @@ License: GPL Version 3
 */
 #include "serial.h"
 #include "vedirect.h"
+#include "log_csv.h"
+
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 2
 #define VERSION_PATCH 0
@@ -45,29 +47,23 @@ int main (int argc, char *argv[])
   int c;
   int term_fd;
   FILE *term_f;
-  FILE *log_f;
   time_t log_time;
   char *log_time_str;
   struct tm *log_time_tm;
-  struct tm *start_time_tm;
   char *log_line;
-  time_t start_time;
   int log_rotate_interval;
-  int log_n;
-  int log_change;
-  int header_needed=1;
   int serial_state;
   int i, j;
   ve_direct_block_t *block;
+  ve_log_output_csv_t *out_csv = NULL;
+  char *header=NULL;
 
 
   oarg = NULL;
-  log_f = NULL;
   device = NULL;
   log_line = malloc (sizeof (char) * 100);
   log_time_str = malloc (sizeof (char) * 20);
   log_rotate_interval = 0;
-  log_n = 0;
 
 
   while ((c = getopt (argc, argv, "i:o:r:hv")) != -1)
@@ -119,37 +115,13 @@ int main (int argc, char *argv[])
       printf ("%s: No device selected, please see %s -h\n", argv[0], argv[0]);
       exit (0);
     }
-  if (oarg)
-    {
-      log_f = fopen (oarg, "w");
-    }
-  else
-    {
-      printf ("No logfile specified, printing to standard output\n");
-    }
+
   printf ("press Ctrl-C to quit\n");
   signal (SIGINT, catch_exit);
-
-  start_time = time (NULL);
-
-  /*set start time to midnight*/
-  start_time_tm = localtime (&start_time);
-  start_time_tm->tm_hour = 0;
-  start_time_tm->tm_min = 0;
-  start_time_tm->tm_sec = 0;
-  start_time = mktime(start_time_tm);
 
   term_fd = open_serial (device);
   if (term_fd == 1)
     {
-      if (log_f)
-        {
-          fclose (log_f);
-        }
-      free (log_time_str);
-      free (log_line);
-
-
       exit (1);
     }
   term_f = fdopen (term_fd, "r");
@@ -197,32 +169,20 @@ int main (int argc, char *argv[])
                   break;
             }
 
-          log_time = time (NULL);
-          /*rotate log */
-          if (oarg && log_rotate_interval != 0)
+          if (oarg && header == NULL)
             {
-              log_change = (log_time - start_time) / log_rotate_interval;
-
-              if (log_change != 0)
+              header = malloc(256);
+              header[0]='\0';
+              for ( i = 0; i < num_fields; i++)
                 {
-                  start_time += log_rotate_interval * log_change;
-                  log_rotate (log_f, oarg, log_n);
-                  log_n++;
-                  header_needed = 1;
+                  sprintf(&header[strlen(header)], "%s,", fields_p[i]);
                 }
+              sprintf (&header[strlen(header)], "TIME\n");
+              out_csv = init_output_log_csv(oarg, header, log_rotate_interval);
+
             }
 
-          // print header
-          if (header_needed)
-            {
-              header_needed = 0;
-              log_line[0]='\0';
-              for ( i = 0; i < num_fields; i++) {
-                sprintf(&log_line[strlen(log_line)], "%s,", fields_p[i]);
-              }
-              sprintf (&log_line[strlen(log_line)], "TIME\n");
-              send_string (log_line, log_f);
-            }
+          log_time = time (NULL);
 
           log_time_tm = localtime (&log_time);
           strftime (log_time_str, 20, "%Y-%m-%dT%H:%M:%S", log_time_tm);
@@ -236,7 +196,7 @@ int main (int argc, char *argv[])
           }
 
           sprintf (&log_line[strlen(log_line)], "%s\n", log_time_str);
-          send_string (log_line, log_f);
+          log_csv_send (out_csv, log_line);
           ve_direct_free_block(block);
         }
 
@@ -264,10 +224,7 @@ int main (int argc, char *argv[])
       fclose (term_f);          //may not close in case of interrupted stream
     }
   printf ("exiting...\n");
-  if (log_f)
-    {
-      fclose (log_f);
-    }
+  if (out_csv) free(out_csv);
   free (log_time_str);
   free (log_line);
   return 0;
