@@ -1,0 +1,26 @@
+[Unit]
+Description=VE.Direct Logger for Victron Bettery Monitor
+
+Wants=carbon-cache.service
+After=carbon-cache.service
+
+Wants=dev-vedirect_bmv.device
+After=dev-vedirect_bmv.device
+
+StartLimitBurst=3
+StartLimitInterval=60
+
+[Service]
+User=nobody
+Group=dialout
+Type=simple
+
+TimeoutStartSec=infinity
+Restart=always
+RestartSec=10
+LimitCORE=infinity
+
+ExecStart=/usr/local/bin/velog -i /dev/vedirect_bmv -g 127.0.0.1 -d BMV_712_001
+
+[Install]
+WantedBy=multi-user.target

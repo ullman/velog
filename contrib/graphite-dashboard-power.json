@@ -1,0 +1,119 @@
+{
+  "name": "Power_board",
+  "timeConfig": {
+    "type": "relative",
+    "relativeStartQuantity": "3",
+    "relativeStartUnits": "days",
+    "relativeUntilQuantity": "",
+    "relativeUntilUnits": "now",
+    "startDate": "2020-10-14T21:18:00",
+    "startTime": "9:00 AM",
+    "endDate": "2020-10-14T21:18:00",
+    "endTime": "5:00 PM"
+  },
+  "refreshConfig": {
+    "enabled": true,
+    "interval": 60000
+  },
+  "graphSize": {
+    "width": "400",
+    "height": "300"
+  },
+  "defaultGraphParams": {
+    "from": "-3days",
+    "until": "now",
+    "width": "400",
+    "height": "300"
+  },
+  "graphs": [
+    [
+      "target=legendValue(alias(velog.BMV_712_001.P%2C%22BMV%22)%2C%22last%22)&target=legendValue(alias(scale(multiplySeries(scale(removeBelowValue(velog.HQ2017JGK6S.AC_OUT_I%2C0)%2C0.1)%2Cscale(velog.HQ2017JGK6S.AC_OUT_V%2C0.01))%2C-1)%2C%22AC_OUT%22)%2C%22last%22)&target=constantLine(0)",
+      {
+        "width": "586",
+        "height": "308",
+        "title": "System Power",
+        "from": "-3days",
+        "target": [
+          "legendValue(alias(velog.BMV_712_001.P,\"BMV\"),\"last\")",
+          "legendValue(alias(scale(multiplySeries(scale(removeBelowValue(velog.HQ2017JGK6S.AC_OUT_I,0),0.1),scale(velog.HQ2017JGK6S.AC_OUT_V,0.01)),-1),\"AC_OUT\"),\"last\")",
+          "constantLine(0)"
+        ],
+        "until": "now"
+      },
+      "http://192.168.247.50:8081/graphite/render?from=-3days&until=now&width=400&height=300&title=System%20Power&target=legendValue(alias(velog.BMV_712_001.P%2C%22BMV%22)%2C%22last%22)&target=legendValue(alias(scale(multiplySeries(scale(removeBelowValue(velog.HQ2017JGK6S.AC_OUT_I%2C0)%2C0.1)%2Cscale(velog.HQ2017JGK6S.AC_OUT_V%2C0.01))%2C-1)%2C%22AC_OUT%22)%2C%22last%22)&target=constantLine(0)&_uniq=0.5125236197162936"
+    ],
+    [
+      "target=legendValue(aliasByNode(scale(velog.*.V%2C0.001)%2C1)%2C%22last%22)",
+      {
+        "width": "586",
+        "height": "308",
+        "title": "System Battery Voltages",
+        "from": "-3days",
+        "target": [
+          "legendValue(aliasByNode(scale(velog.*.V,0.001),1),\"last\")"
+        ],
+        "until": "now"
+      },
+      "http://192.168.247.50:8081/graphite/render?from=-3days&until=now&width=400&height=300&title=System%20Battery%20Voltages&target=legendValue(aliasByNode(scale(velog.*.V%2C0.001)%2C1)%2C%22last%22)&_uniq=0.14985900365720528"
+    ],
+    [
+      "target=legendValue(alias(scale(velog.BMV_712_001.T%2C1)%2C%22BATT%20TEMP%22)%2C%22min%22%2C%20%22max%22%2C%22last%22)",
+      {
+        "width": "586",
+        "height": "308",
+        "from": "-3days",
+        "title": "Battery+Temperature",
+        "yMin": "0",
+        "yMax": "100",
+        "target": [
+          "legendValue(alias(scale(velog.BMV_712_001.T,1),\"BATT TEMP\"),\"min\", \"max\",\"last\")"
+        ],
+        "until": "now"
+      },
+      "http://192.168.247.50:8081/graphite/render?from=-3days&until=now&width=400&height=300&title=Battery%2BTemperature&yMin=0&yMax=100&target=legendValue(alias(scale(velog.BMV_712_001.T%2C1)%2C%22BATT%20TEMP%22)%2C%22min%22%2C%20%22max%22%2C%22last%22)&_uniq=0.4069735526220003"
+    ],
+    [
+      "target=legendValue(aliasByNode(velog.*.PPV%2C1)%2C%22last%22)",
+      {
+        "width": "586",
+        "height": "308",
+        "from": "-3days",
+        "title": "Panel Power",
+        "target": [
+          "legendValue(aliasByNode(velog.*.PPV,1),\"last\")"
+        ],
+        "until": "now"
+      },
+      "http://192.168.247.50:8081/graphite/render?from=-3days&until=now&width=400&height=300&title=Panel%20Power&target=legendValue(aliasByNode(velog.*.PPV%2C1)%2C%22last%22)&_uniq=0.8167666504904796"
+    ],
+    [
+      "target=legendValue(aliasByNode(scale(velog.*.VPV%2C0.001)%2C1)%2C%22last%22)",
+      {
+        "width": "586",
+        "height": "308",
+        "title": "Panel Voltages",
+        "from": "-3days",
+        "target": [
+          "legendValue(aliasByNode(scale(velog.*.VPV,0.001),1),\"last\")"
+        ],
+        "until": "now"
+      },
+      "http://192.168.247.50:8081/graphite/render?from=-3days&until=now&width=400&height=300&title=Panel%20Voltages&target=legendValue(aliasByNode(scale(velog.*.VPV%2C0.001)%2C1)%2C%22last%22)&_uniq=0.7942455801110614"
+    ],
+    [
+      "target=legendValue(alias(scale(velog.BMV_712_001.CE%2C0.001)%2C%22BATT%22)%2C%22last%22)&target=alias(color(constantLine(-230)%2C'red')%2C'MAX%2BDISCHARGE')",
+      {
+        "width": "586",
+        "height": "308",
+        "title": "Consumed+Energy",
+        "target": [
+          "legendValue(alias(scale(velog.BMV_712_001.CE,0.001),\"BATT\"),\"last\")",
+          "alias(color(constantLine(-230),'red'),'MAX+DISCHARGE')"
+        ],
+        "from": "-3days",
+        "until": "now"
+      },
+      "http://192.168.247.50:8081/graphite/render?from=-3days&until=now&width=400&height=300&title=Consumed%2BEnergy&target=legendValue(alias(scale(velog.BMV_712_001.CE%2C0.001)%2C%22BATT%22)%2C%22last%22)&target=alias(color(constantLine(-230)%2C%27red%27)%2C%27MAX%2BDISCHARGE%27)&_uniq=0.23816619219757362"
+    ]
+  ]
+}

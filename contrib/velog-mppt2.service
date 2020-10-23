@@ -1,0 +1,26 @@
+[Unit]
+Description=VE.Direct Logger for MPPT 75|15 #2
+
+Wants=carbon-cache.service
+After=carbon-cache.service
+
+Wants=dev-vedirect_mppt2.device
+After=dev-vedirect_mppt2.device
+
+StartLimitBurst=3
+StartLimitInterval=60
+
+[Service]
+User=nobody
+Group=dialout
+Type=simple
+
+TimeoutStartSec=infinity
+Restart=always
+RestartSec=10
+LimitCORE=infinity
+
+ExecStart=/usr/local/bin/velog -i /dev/vedirect_mppt2 -g 127.0.0.1 -d HQ1909K249H
+
+[Install]
+WantedBy=multi-user.target

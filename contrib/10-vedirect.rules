@@ -1,0 +1,29 @@
+SUBSYSTEM=="tty" \
+, KERNELS=="1-1.3:1.0" \
+, TAG+="systemd" \
+, SYMLINK+="vedirect_bmv" \
+, ENV{SYSTEMD_ALIAS}="/dev/vedirect_bmv"
+
+SUBSYSTEM=="tty" \
+, KERNELS=="1-1.2.1:1.0" \
+, TAG+="systemd" \
+, SYMLINK+="vedirect_inverter" \
+, ENV{SYSTEMD_ALIAS}="/dev/vedirect_inverter"
+
+SUBSYSTEM=="tty" \
+, KERNELS=="1-1.2.2:1.0" \
+, TAG+="systemd" \
+, SYMLINK+="vedirect_mppt1" \
+, ENV{SYSTEMD_ALIAS}="/dev/vedirect_mppt1"
+
+SUBSYSTEM=="tty" \
+, KERNELS=="1-1.2.3:1.0" \
+, TAG+="systemd" \
+, SYMLINK+="vedirect_mppt2" \
+, ENV{SYSTEMD_ALIAS}="/dev/vedirect_mppt2"
+
+SUBSYSTEM=="tty" \
+, KERNELS=="1-1.2.4:1.0" \
+, TAG+="systemd" \
+, SYMLINK+="vedirect_mppt3" \
+, ENV{SYSTEMD_ALIAS}="/dev/vedirect_mppt3"
