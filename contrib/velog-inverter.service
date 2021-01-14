@@ -1,0 +1,26 @@
+[Unit]
+Description=VE.Direct Logger for Phoenix 12|1200 Inverter
+
+Wants=carbon-cache.service
+After=carbon-cache.service
+
+Wants=dev-vedirect_inverter.device
+After=dev-vedirect_inverter.device
+
+StartLimitBurst=3
+StartLimitInterval=60
+
+[Service]
+User=nobody
+Group=dialout
+Type=simple
+
+TimeoutStartSec=infinity
+Restart=always
+RestartSec=10
+LimitCORE=infinity
+
+ExecStart=/usr/local/bin/velog -i /dev/vedirect_inverter -g 127.0.0.1 -d HQ2017JGK6S
+
+[Install]
+WantedBy=multi-user.target

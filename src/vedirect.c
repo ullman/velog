@@ -308,6 +308,7 @@ ve_direct_block_t *ve_direct_parse_block(char *block_text_in)
 	//General
 	_ve_direct_add_field(block, "V", ve_direct_value_type_int, "mV", "Main or channel 1 battery voltage");
 	_ve_direct_add_field(block, "I", ve_direct_value_type_int, "mA", "Main or channel 1 battery current");
+	_ve_direct_add_field(block, "SER#", ve_direct_value_type_str, "", "Serial number of the device");
 
 	//MPPT Charge Controller
 	_ve_direct_add_field(block, "VPV", ve_direct_value_type_int, "mV", "Panel voltage");

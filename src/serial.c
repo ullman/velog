@@ -4,7 +4,20 @@ Copyright (C) 2020  Philip J Freeman <elektron@halo.nu>
 License: GPL Version 3
 */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <termios.h>
+#include <fcntl.h>
+#include <time.h>
+#include <sys/select.h>
+#include <sys/types.h>
+#include <sys/ioctl.h>
+#include "vedirect.h"
 #include "serial.h"
+
+extern volatile int run_loop;
 
 int open_serial (char *sport)
 {
@@ -132,29 +145,5 @@ int get_block (FILE * term_f, ve_direct_block_t **block_p)
            "Error: got EOF from serial stream!\n");
 
   return 1;
-
-}
-
-void send_string (char *sstring, FILE * outfile)
-{
-  if (outfile)
-    {
-      fprintf (outfile, "%s", sstring);
-      fflush (outfile);
-    }
-  else
-    {
-      printf ("%s", sstring);
-    }
-}
-
-void log_rotate (FILE * log_f, char *oarg, int log_n)
-{
-  char new_name[100];
-  sprintf (new_name, "%s.%i", oarg, log_n);
-  fclose (log_f);
-  rename (oarg, new_name);
-  log_f = fopen (oarg, "w");
-  send_string ("PPV,I,IL,V,VPV,TIME\n", log_f);
 
 }

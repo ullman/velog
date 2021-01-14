@@ -3,8 +3,18 @@ Copyright (C) 2018  Henrik Ullman
 Copyright (C) 2020  Philip J Freeman <elektron@halo.nu>
 License: GPL Version 3
 */
-#include "serial.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
+#include <unistd.h>
+#include <errno.h>
+#include <time.h>
 #include "vedirect.h"
+#include "serial.h"
+#include "log_csv.h"
+#include "log_graphite.h"
+
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 2
 #define VERSION_PATCH 0
@@ -18,6 +28,8 @@ void print_manual ()
   printf (" -i\tSerial device\n");
   printf (" -o\tLogfile name\n");
   printf (" -r\tLog rotate interval in days\n");
+  printf (" -g\tgraphite host\n");
+  printf (" -d\tgraphite device id\n");
   printf (" -v\tPrint version\n");
 }
 
@@ -45,31 +57,29 @@ int main (int argc, char *argv[])
   int c;
   int term_fd;
   FILE *term_f;
-  FILE *log_f;
   time_t log_time;
   char *log_time_str;
   struct tm *log_time_tm;
-  struct tm *start_time_tm;
   char *log_line;
-  time_t start_time;
   int log_rotate_interval;
-  int log_n;
-  int log_change;
   int serial_state;
-  int i;
+  int i, j;
   ve_direct_block_t *block;
+  ve_log_output_csv_t *out_csv = NULL;
+  char *header=NULL;
+  char *garg=NULL;
+  char *device_id=NULL;
+  char graphite_path[100];
 
 
   oarg = NULL;
-  log_f = NULL;
   device = NULL;
   log_line = malloc (sizeof (char) * 100);
   log_time_str = malloc (sizeof (char) * 20);
   log_rotate_interval = 0;
-  log_n = 0;
 
 
-  while ((c = getopt (argc, argv, "i:o:r:hv")) != -1)
+  while ((c = getopt (argc, argv, "i:o:r:g:d:hv")) != -1)
     {
       switch (c)
         {
@@ -85,6 +95,14 @@ int main (int argc, char *argv[])
           log_rotate_interval = atoi (optarg);
           printf ("Rotating logfiles every %i days\n", log_rotate_interval);
           log_rotate_interval *= 86400; //measure in seconds
+          break;
+        case 'g':
+          garg = optarg;
+          printf ("streaming metrics to graphite: %s\n", garg);
+          break;
+        case 'd':
+          device_id = optarg;
+          printf ("streaming metrics to graphite with device id: %s\n", device_id);
           break;
         case 'h':
           print_manual ();
@@ -118,97 +136,114 @@ int main (int argc, char *argv[])
       printf ("%s: No device selected, please see %s -h\n", argv[0], argv[0]);
       exit (0);
     }
-  if (oarg)
-    {
-      log_f = fopen (oarg, "w");
-    }
-  else
-    {
-      printf ("No logfile specified, printing to standard output\n");
-    }
+
   printf ("press Ctrl-C to quit\n");
   signal (SIGINT, catch_exit);
-
-  start_time = time (NULL);
-
-  /*set start time to midnight*/
-  start_time_tm = localtime (&start_time);
-  start_time_tm->tm_hour = 0;
-  start_time_tm->tm_min = 0;
-  start_time_tm->tm_sec = 0;
-  start_time = mktime(start_time_tm);
 
   term_fd = open_serial (device);
   if (term_fd == 1)
     {
-      if (log_f)
-        {
-          fclose (log_f);
-        }
-      free (log_time_str);
-      free (log_line);
-
-
       exit (1);
     }
   term_f = fdopen (term_fd, "r");
-  send_string ("PPV,I,IL,V,VPV,TIME\n", log_f);
+
+  //initialize graphite client
+  if (garg)
+    {
+      if (init_graphite(garg, 2003) != 0)
+        {
+          fprintf (stderr, "Error initializing graphite logging client.\n");
+          exit (1);
+        }
+    }
   while (!NULL)
     {
       if (!(serial_state = get_block (term_f, &block)))
         {
-          if (block->device_info == NULL || block->device_info->type != ve_direct_device_type_mppt)
+          if (block->device_info == NULL)
             {
-              /* TODO: support further device types with alternate lists of data fields. */
-              fprintf(stderr, "Warning: skipping non-mppt block\n");
+              // fprintf(stderr, "Warning: skipping block w/o device_info :-/\n");
               ve_direct_free_block(block);
               continue;
             }
 
-          log_time = time (NULL);
-          /*rotate log */
-          if (oarg && log_rotate_interval != 0)
-            {
-              log_change = (log_time - start_time) / log_rotate_interval;
+          int num_fields=0;
+          char *field_list_mppt[] = { "PPV", "I", "IL", "V", "VPV" };
+          char *field_list_inverter[] = { "V", "AC_OUT_V", "AC_OUT_I" };
+          char *field_list_bmv[] = { "P","I", "V", "T", "CE", "SOC", "TTG" };
+          char *field_list_unknown[] = { "I", "V" };
+          char **fields_p = NULL;
 
-              if (log_change != 0)
-                {
-                  start_time += log_rotate_interval * log_change;
-                  log_rotate (log_f, oarg, log_n);
-                  log_n++;
-                }
+          switch (block->device_info->type)
+            {
+                case ve_direct_device_type_mppt:
+                  num_fields = 5;
+                  fields_p = field_list_mppt;
+                  break;
+
+                case ve_direct_device_type_inverter:
+                  num_fields = 3;
+                  fields_p = field_list_inverter;
+                  break;
+
+                case ve_direct_device_type_bmv:
+                  num_fields = 7;
+                  fields_p = field_list_bmv;
+                  break;
+
+                case ve_direct_device_type_smart_charger:
+                case ve_direct_device_type_unknown:
+                  num_fields = 2;
+                  fields_p = field_list_unknown;
+                  break;
+                default:
+                  break;
             }
+
+          if (oarg && header == NULL)
+            {
+              header = malloc(256);
+              header[0]='\0';
+              for ( i = 0; i < num_fields; i++)
+                {
+                  sprintf(&header[strlen(header)], "%s,", fields_p[i]);
+                }
+              sprintf (&header[strlen(header)], "TIME\n");
+              out_csv = init_output_log_csv(oarg, header, log_rotate_interval);
+
+            }
+
+          log_time = time (NULL);
+
           log_time_tm = localtime (&log_time);
           strftime (log_time_str, 20, "%Y-%m-%dT%H:%M:%S", log_time_tm);
 
-          log_line[0]='\0';
-          if (ve_direct_get_field_int(&i, block, "PPV") == 0)
-            sprintf(&log_line[strlen(log_line)], "%i,", i);
-          else
-            sprintf(&log_line[strlen(log_line)], ",");
+          if (out_csv) log_line[0]='\0';
+          for ( i = 0; i < num_fields; i++) {
+            if (ve_direct_get_field_int(&j, block, fields_p[i]) == 0) {
+              if (out_csv) sprintf(&log_line[strlen(log_line)], "%i,", j);
 
-          if (ve_direct_get_field_int(&i, block, "I") == 0)
-            sprintf(&log_line[strlen(log_line)], "%i,", i);
-          else
-            sprintf(&log_line[strlen(log_line)], ",");
+	      if (garg)
+		{
+                  //graphite
+                  if (device_id == NULL && (device_id = ve_direct_get_field_value(block, "SER#")) == NULL) {
+                    fprintf(stderr, "Warning: not sending graphite metric without device_id.\n");
+                    fprintf(stderr, "if the device doesn't publish a SER# field you must manually\n");
+                    fprintf(stderr, "specify with -d.\n");
+                    continue;
+                  }
+                  snprintf(graphite_path, 100, "velog.%s.%s", device_id, fields_p[i]);
+                  log_graphite(graphite_path, j, log_time);
+		}
+            } else {
+              if (out_csv) sprintf(&log_line[strlen(log_line)], ",");
+            }
+          }
 
-          if (ve_direct_get_field_int(&i, block, "IL") == 0)
-            sprintf(&log_line[strlen(log_line)], "%i,", i);
-          else
-            sprintf(&log_line[strlen(log_line)], ",");
-
-          if (ve_direct_get_field_int(&i, block, "V") == 0)
-            sprintf(&log_line[strlen(log_line)], "%i,", i);
-          else
-            sprintf(&log_line[strlen(log_line)], ",");
-
-          if (ve_direct_get_field_int(&i, block, "VPV") == 0)
-            sprintf(&log_line[strlen(log_line)], "%i,", i);
-          else
-            sprintf(&log_line[strlen(log_line)], ",");
-
-          sprintf (&log_line[strlen(log_line)], "%s\n", log_time_str);
-          send_string (log_line, log_f);
+          if (out_csv) {
+            log_csv_send (out_csv, log_line);
+            sprintf (&log_line[strlen(log_line)], "%s\n", log_time_str);
+	  }
           ve_direct_free_block(block);
         }
 
@@ -236,10 +271,8 @@ int main (int argc, char *argv[])
       fclose (term_f);          //may not close in case of interrupted stream
     }
   printf ("exiting...\n");
-  if (log_f)
-    {
-      fclose (log_f);
-    }
+  if (out_csv) free(out_csv);
+  if (garg) close_graphite();
   free (log_time_str);
   free (log_line);
   return 0;
