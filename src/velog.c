@@ -15,8 +15,8 @@ License: GPL Version 3
 #include "log_csv.h"
 #include "log_graphite.h"
 
-#define VERSION_MAJOR 0
-#define VERSION_MINOR 2
+#define VERSION_MAJOR 1
+#define VERSION_MINOR 0
 #define VERSION_PATCH 0
 
 volatile int run_loop = 1;
