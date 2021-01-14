@@ -1,5 +1,6 @@
 /*
 Copyright (C) 2018  Henrik Ullman
+Copyright (C) 2020  Philip Freeman <elektron@halo.nu>
 License: GPL Version 3
 */
 #ifndef SERIAL_H
@@ -17,32 +18,15 @@ License: GPL Version 3
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include "vedirect.h"
 
 
-
-
-struct log_pack
-{
-  char *PPV;
-  char *V;
-  char *I;
-  char *IL;
-  char *VPV;
-  int ppv_def;
-  int v_def;
-  int i_def;
-  int il_def;
-  int vpv_def;
-};
 
 extern volatile int run_loop;
 
 int open_serial (char *sport);
 
-void parse_line (char *needle, char *log_line, char **store_loc,
-                 int *def_int);
-
-int parse_packet (FILE * term_f, struct log_pack *packet);
+int get_block (FILE * term_f, ve_direct_block_t **block);
 
 void send_string (char *sstring, FILE * outfile);
 

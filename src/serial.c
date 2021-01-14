@@ -1,5 +1,6 @@
 /*
 Copyright (C) 2018  Henrik Ullman
+Copyright (C) 2020  Philip J Freeman <elektron@halo.nu>
 License: GPL Version 3
 */
 
@@ -40,25 +41,11 @@ int open_serial (char *sport)
   return term_fd;
 }
 
-void parse_line (char *needle, char *log_line, char **store_loc, int *def_int)
-{
-  char *cut_loc;
-  if (log_line == strstr (log_line, needle))
-    {
-      cut_loc = strstr (log_line, "\t");
-      *store_loc = malloc (sizeof (char) * strlen (cut_loc + 1) + 1);
-      strcpy (*store_loc, cut_loc + 1);
-      *def_int = 1;
-    }
-}
-
-int parse_packet (FILE * term_f, struct log_pack *packet)
+int get_block (FILE * term_f, ve_direct_block_t **block_p)
 {
   //TODO add custom parameters to log
-  char *log_line;
-  int checksum;
-  int i;
-  int l;
+  char block_buf[1025];
+  int l=0;
   int fd;
   int a;
   fd_set set;
@@ -66,8 +53,7 @@ int parse_packet (FILE * term_f, struct log_pack *packet)
   struct timeval timeout;
   size_t len;
 
-  checksum = 0;
-  log_line = calloc (100, sizeof (char));
+  ve_direct_block_t *b;
 
   /*Timeout */
 
@@ -77,73 +63,75 @@ int parse_packet (FILE * term_f, struct log_pack *packet)
   timeout.tv_sec = 10;
   timeout.tv_usec = 0;
 
-  while (!strstr (log_line, "Checksum"))
+  while ((a = getc (term_f)) != EOF)
     {
+      to = select (FD_SETSIZE, &set, NULL, NULL, &timeout);
 
+      len = 0;
+      ioctl (fd, FIONREAD, &len);
 
-      memset (log_line, 0, 100);
-      log_line[0] = 0x0D;
-      l = 1;
-      a = 1;
-      while ((a = getc (term_f)) != 0x0D)
+      if (to == 0)
         {
+          fprintf (stderr,
+                   "Read timeout, please check serial input...\n");
+          return 1;
+        }
 
-          log_line[l] = a;
+      if (run_loop == 0)
+        {
+          return 1;
+        }
+
+      if (len == 0)
+        {
+          fprintf (stderr,
+                   "Device disconnected, retrying in 10 sec...\n");
+          return 2;
+        }
+
+      if (l > 1024)
+        {
+          fprintf (stderr,
+                   "Error: Exhausted block read buffer!\n");
+          return 1;
+        }
+
+      block_buf[l]=a;
+
+      /* skip hex protocol frames */
+      if (block_buf[0] == ':' && block_buf[l] == '\n')
+        {
+          l = 0;
+          continue;
+        }
+
+      if (l < 9)
+        {
           l++;
-          to = select (FD_SETSIZE, &set, NULL, NULL, &timeout);
-
-          len = 0;
-          ioctl (fd, FIONREAD, &len);
-          if (to == 0)
-            {
-              fprintf (stderr,
-                       "Read timeout, please check serial input...\n");
-              free (log_line);
-              return 1;
-            }
-          else if (run_loop == 0)
-            {
-              free (log_line);
-              return 1;
-            }
-          else if (len == 0)
-            {
-              fprintf (stderr,
-                       "Device disconnected, retrying in 10 sec...\n");
-              free (log_line);
-              return 2;
-            }
-          else if (l >= 100)
-            {
-              fprintf (stderr,
-                       "Package malformed, discarding...\n");
-              free (log_line);
-              return 1;
-            }
+          continue;
         }
 
-      for (i = 0; i < strlen (log_line); i++)
+      block_buf[l+1]='\0'; // add null terminator after last byte in buffer
+
+      // test for end of block
+      if (strstr(&block_buf[l-9], "Checksum") == &block_buf[l-9])
         {
-          checksum = checksum + (int) log_line[i];
+          l = 0;
+          b = ve_direct_parse_block(&block_buf[0]);
+          if (b == NULL)
+            return 1;
+          *block_p = b;
+          return 0;
         }
-      parse_line ("PPV\t", log_line + 2, &packet->PPV, &packet->ppv_def);
-      parse_line ("I\t", log_line + 2, &packet->I, &packet->i_def);
-      parse_line ("IL\t", log_line + 2, &packet->IL, &packet->il_def);
-      parse_line ("V\t", log_line + 2, &packet->V, &packet->v_def);
-      parse_line ("VPV\t", log_line + 2, &packet->VPV, &packet->vpv_def);
+
+      l++;
+
     }
 
-  free (log_line);
+  fprintf (stderr,
+           "Error: got EOF from serial stream!\n");
 
-  if ((checksum) % 256 != 0)
-    {
-      fprintf (stderr, "Checksum error for packet, discarding...\n");
-      return 1;
-    }
-  else
-    {
-      return 0;
-    }
+  return 1;
 
 }
 
