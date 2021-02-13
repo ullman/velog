@@ -10,10 +10,15 @@ License: GPL Version 3
 #include <unistd.h>
 #include <errno.h>
 #include <time.h>
+#include <prom.h>
+#include <promhttp.h>
+#include <microhttpd.h>
+
 #include "vedirect.h"
 #include "serial.h"
 #include "log_csv.h"
 #include "log_graphite.h"
+#include "log_prometheus.h"
 
 #define VERSION_MAJOR 1
 #define VERSION_MINOR 0
@@ -30,6 +35,8 @@ void print_manual ()
   printf (" -r\tLog rotate interval in days\n");
   printf (" -g\tgraphite host\n");
   printf (" -d\tgraphite device id\n");
+  printf (" -p\tExport to Prometheus (default port 9110)\n");
+  printf (" -e\tPort for Prometheus exporter\n");
   printf (" -v\tPrint version\n");
 }
 
@@ -68,9 +75,12 @@ int main (int argc, char *argv[])
   ve_log_output_csv_t *out_csv = NULL;
   char *header=NULL;
   char *garg=NULL;
+  int parg;
+  unsigned short port=9110;
   char *device_id=NULL;
   char graphite_path[100];
 
+  int p_status=0;
 
   oarg = NULL;
   device = NULL;
@@ -79,7 +89,7 @@ int main (int argc, char *argv[])
   log_rotate_interval = 0;
 
 
-  while ((c = getopt (argc, argv, "i:o:r:g:d:hv")) != -1)
+  while ((c = getopt (argc, argv, "i:o:r:g:d:pe:hv")) != -1)
     {
       switch (c)
         {
@@ -103,6 +113,12 @@ int main (int argc, char *argv[])
         case 'd':
           device_id = optarg;
           printf ("streaming metrics to graphite with device id: %s\n", device_id);
+          break;
+        case 'p':
+          parg = 1;
+          break;
+        case 'e':
+          port = strtoul(optarg, NULL, 0);
           break;
         case 'h':
           print_manual ();
@@ -155,6 +171,22 @@ int main (int argc, char *argv[])
           fprintf (stderr, "Error initializing graphite logging client.\n");
           exit (1);
         }
+    }
+  if (parg)
+    {
+
+      printf("Starting prometheus exporter on port %hu\n", port);
+
+      init_prometheus();
+      init_metric_prometheus();
+
+      promhttp_set_active_collector_registry(NULL);
+      struct MHD_Daemon *daemon = promhttp_start_daemon(MHD_USE_SELECT_INTERNALLY, port, NULL, NULL);
+      if (daemon == NULL){
+        fprintf (stderr, "Error initializing prometeus exporter.\n");
+        exit (1);
+
+      }
     }
   while (!NULL)
     {
@@ -235,6 +267,14 @@ int main (int argc, char *argv[])
                   snprintf(graphite_path, 100, "velog.%s.%s", device_id, fields_p[i]);
                   log_graphite(graphite_path, j, log_time);
 		}
+        if(parg)
+                {
+                  p_status = log_prometheus (fields_p[i], (double) j);
+                  if(p_status){
+                    fprintf(stderr, "error exporting variable to prometheus\n");
+                  }
+                }
+
             } else {
               if (out_csv) sprintf(&log_line[strlen(log_line)], ",");
             }
