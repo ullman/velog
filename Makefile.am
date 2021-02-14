@@ -18,5 +18,4 @@ vedirect_test_SOURCES = \
 
 if ENABLE_PROMETHEUS
 velog_SOURCES += src/log_prometheus.c src/log_prometheus.h
-#AM_CFLAGS += -DPROMETHEUS
 endif
