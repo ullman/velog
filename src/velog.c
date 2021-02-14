@@ -3,6 +3,7 @@ Copyright (C) 2018  Henrik Ullman
 Copyright (C) 2020  Philip J Freeman <elektron@halo.nu>
 License: GPL Version 3
 */
+#include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,19 +11,19 @@ License: GPL Version 3
 #include <unistd.h>
 #include <errno.h>
 #include <time.h>
-#include <prom.h>
-#include <promhttp.h>
-#include <microhttpd.h>
 
 #include "vedirect.h"
 #include "serial.h"
 #include "log_csv.h"
 #include "log_graphite.h"
-#include "log_prometheus.h"
 
-#define VERSION_MAJOR 1
-#define VERSION_MINOR 1
-#define VERSION_PATCH 0
+#ifdef PROMETHEUS
+#include <prom.h>
+#include <promhttp.h>
+#include <microhttpd.h>
+#include "log_prometheus.h"
+#endif
+
 
 volatile int run_loop = 1;
 
@@ -35,15 +36,19 @@ void print_manual ()
   printf (" -r\tLog rotate interval in days\n");
   printf (" -g\tgraphite host\n");
   printf (" -d\tgraphite device id\n");
+
+#ifdef PROMETHEUS
   printf (" -p\tExport to Prometheus (default port 9110)\n");
   printf (" -e\tPort for Prometheus exporter\n");
+#endif
+
   printf (" -v\tPrint version\n");
 }
 
 void print_version ()
 {
-  printf ("velog version %i.%i.%i\n", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
-  printf ("Copyright (C) 2018  Henrik Ullman\n");
+  printf ("velog version %s\n", VERSION);
+  printf ("Copyright (C) 2018  Henrik Ullman <henrik@ullman.com>\n");
   printf ("Copyright (C) 2020  Philip J Freeman <elektron@halo.nu>\n");
   printf ("License: GPL Version 3\n");
   printf
@@ -75,12 +80,13 @@ int main (int argc, char *argv[])
   ve_log_output_csv_t *out_csv = NULL;
   char *header=NULL;
   char *garg=NULL;
-  int parg;
-  unsigned short port=9110;
   char *device_id=NULL;
   char graphite_path[100];
-
+#ifdef PROMETHEUS
+  int parg;
+  unsigned short port=9110;
   int p_status=0;
+#endif
 
   oarg = NULL;
   device = NULL;
@@ -114,12 +120,15 @@ int main (int argc, char *argv[])
           device_id = optarg;
           printf ("streaming metrics to graphite with device id: %s\n", device_id);
           break;
+
+#ifdef PROMETHEUS
         case 'p':
           parg = 1;
           break;
         case 'e':
           port = strtoul(optarg, NULL, 0);
           break;
+#endif
         case 'h':
           print_manual ();
           exit (0);
@@ -172,6 +181,8 @@ int main (int argc, char *argv[])
           exit (1);
         }
     }
+
+#ifdef PROMETHEUS
   if (parg)
     {
 
@@ -188,6 +199,7 @@ int main (int argc, char *argv[])
 
       }
     }
+#endif
   while (!NULL)
     {
       if (!(serial_state = get_block (term_f, &block)))
@@ -267,6 +279,8 @@ int main (int argc, char *argv[])
                   snprintf(graphite_path, 100, "velog.%s.%s", device_id, fields_p[i]);
                   log_graphite(graphite_path, j, log_time);
 		}
+
+#ifdef PROMETHEUS
         if(parg)
                 {
                   p_status = log_prometheus (fields_p[i], (double) j);
@@ -274,6 +288,7 @@ int main (int argc, char *argv[])
                     fprintf(stderr, "error exporting variable to prometheus\n");
                   }
                 }
+#endif
 
             } else {
               if (out_csv) sprintf(&log_line[strlen(log_line)], ",");
@@ -313,6 +328,9 @@ int main (int argc, char *argv[])
   printf ("exiting...\n");
   if (out_csv) free(out_csv);
   if (garg) close_graphite();
+#ifdef PROMETHEUS
+  if(parg) close_prometheus();
+#endif
   free (log_time_str);
   free (log_line);
   return 0;
