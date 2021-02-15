@@ -1,0 +1,23 @@
+[Unit]
+Description=VE.Direct Logger
+
+Wants=dev-*DEVICE_NAME*.device
+After=dev-*DEVICE_NAME*.device
+
+StartLimitBurst=3
+StartLimitInterval=60
+
+[Service]
+User=nobody
+Group=dialout
+Type=simple
+
+TimeoutStartSec=infinity
+Restart=always
+RestartSec=10
+LimitCORE=infinity
+
+ExecStart=/usr/local/bin/velog -i *DEVICE_PATH* *FLAGS*
+
+[Install]
+WantedBy=multi-user.target

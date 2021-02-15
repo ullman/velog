@@ -1,5 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
-bin_PROGRAMS = velog vedirect_test
+bin_PROGRAMS = velog
+noinst_PROGRAMS = vedirect_test
 
 AM_CFLAGS= -Wall -Werror -O2
 
