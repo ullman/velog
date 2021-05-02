@@ -83,7 +83,7 @@ int main (int argc, char *argv[])
   char *device_id=NULL;
   char graphite_path[100];
 #ifdef PROMETHEUS
-  int parg;
+  int parg=0;
   unsigned short port=9110;
   int p_status=0;
 #endif
@@ -296,8 +296,8 @@ int main (int argc, char *argv[])
           }
 
           if (out_csv) {
-            log_csv_send (out_csv, log_line);
             sprintf (&log_line[strlen(log_line)], "%s\n", log_time_str);
+            log_csv_send (out_csv, log_line);
 	  }
           ve_direct_free_block(block);
         }

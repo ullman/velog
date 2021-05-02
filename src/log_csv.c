@@ -3,7 +3,7 @@ Copyright (C) 2018  Henrik Ullman
 Copyright (C) 2020  Philip J Freeman <elektron@halo.nu>
 License: GPL Version 3
 */
-#
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
