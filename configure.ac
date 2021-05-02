@@ -12,7 +12,7 @@ AC_ARG_ENABLE([prometheus],
   [:],
   [enable_prometheus=no])
 
-AC_CHECK_LIB([cunit], [CU_initialize_registry])
+AC_CHECK_LIB([cunit], [CU_initialize_registry], [], [AC_MSG_ERROR([required library libcunit not found])])
 
 AM_CONDITIONAL([ENABLE_PROMETHEUS], [test "$enable_prometheus" = "yes"])
 AS_IF([test "$enable_prometheus" = "yes"],
